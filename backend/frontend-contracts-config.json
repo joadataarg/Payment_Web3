@@ -1,0 +1,19 @@
+{
+  "network": "Starknet Sepolia",
+  "rpcUrl": "https://starknet-sepolia.public.blastapi.io/rpc/v0_9",
+  "chainId": "0x534e5f5345504f4c4941",
+  "explorerUrl": "https://sepolia.starkscan.co",
+  "contracts": {
+    "oracle": "0x0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+    "paymentGateway": "0x023456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+    "arsToken": "0x03456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+    "usdtToken": "0x0456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+  },
+  "testingData": {
+    "merchantAddress": "0x01deadbeefcafebabefeedfacec0ffee123456789abcdef123456789abcdef12",
+    "paymentAmount": "5000000",
+    "paymentId": "0x1",
+    "oracleRate": "1000000"
+  },
+  "timestamp": "2025-10-09T20:57:23.542Z"
+}
