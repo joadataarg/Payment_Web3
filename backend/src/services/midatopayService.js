@@ -289,11 +289,16 @@ class MidatoPayService {
       );
       const keystorePassword = process.env.STARKNET_KEYSTORE_PASSWORD ? process.env.STARKNET_KEYSTORE_PASSWORD.trim() : 'vargaviella';
       
+      // Obtener RPC URL desde variables de entorno
+      const rpcUrl = process.env.STARKNET_RPC_URL || 'https://starknet-sepolia.public.blastapi.io/rpc/v0_7';
+      // Remover comillas si están presentes
+      const cleanRpcUrl = rpcUrl.replace(/^["']|["']$/g, '');
+      
       // Convertir paymentId a formato hexadecimal válido para felt252
       const paymentIdHex = '0x' + Buffer.from(paymentId, 'utf8').toString('hex');
       
       // Primero hacer un dry-run para verificar que el calldata es correcto
-      const dryRunCommand = `${starkliPath} call ${contractAddress} pay ${merchantAddress} u256:${amountARS} ${tokenAddress} ${paymentIdHex} --network sepolia`;
+      const dryRunCommand = `${starkliPath} call ${contractAddress} pay ${merchantAddress} u256:${amountARS} ${tokenAddress} ${paymentIdHex} --rpc ${cleanRpcUrl}`;
       
       console.log('🧪 Ejecutando dry-run para verificar calldata:', dryRunCommand);
       
@@ -308,9 +313,8 @@ class MidatoPayService {
         console.warn('⚠️ Dry-run falló:', dryRunError.message);
         console.log('📝 Continuando con invoke real...');
       }
-
       // Ahora ejecutar la transacción real
-      const command = `${starkliPath} invoke ${contractAddress} pay ${merchantAddress} u256:${amountARS} ${tokenAddress} ${paymentIdHex} --account ${accountPath} --keystore ${keystorePath} --keystore-password ${keystorePassword} --network sepolia`;
+      const command = `${starkliPath} invoke ${contractAddress} pay ${merchantAddress} u256:${amountARS} ${tokenAddress} ${paymentIdHex} --account ${accountPath} --keystore ${keystorePath} --keystore-password ${keystorePassword} --rpc ${cleanRpcUrl}`;
 
       console.log('🔧 Ejecutando comando starkli:', command);
 
