@@ -3,13 +3,14 @@
   "version": "1.0.0",
   "description": "Backend API para MidatoPay",
   "main": "src/server.js",
+  "packageManager": "bun@1.1.32",
   "scripts": {
-    "dev": "nodemon src/server.js",
-    "start": "node src/server.js",
-    "db:migrate": "npx prisma migrate dev",
-    "db:generate": "npx prisma generate",
-    "db:seed": "node src/scripts/seed.js",
-    "db:reset": "npx prisma migrate reset"
+    "dev": "bun --hot src/server.js",
+    "start": "bun src/server.js",
+    "db:migrate": "bunx prisma migrate dev",
+    "db:generate": "bunx prisma generate",
+    "db:seed": "bun src/scripts/seed.js",
+    "db:reset": "bunx prisma migrate reset"
   },
   "dependencies": {
     "@clerk/backend": "^2.22.0",
@@ -36,7 +37,5 @@
     "uuid": "^9.0.1",
     "ws": "^8.14.2"
   },
-  "devDependencies": {
-    "nodemon": "^3.0.2"
-  }
+  "devDependencies": {}
 }

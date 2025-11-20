@@ -57,7 +57,7 @@ sleep 10
 # Ejecutar migraciones
 echo ""
 echo "🗄️  Ejecutando migraciones de base de datos..."
-docker exec midatopay-backend-prod npx prisma migrate deploy || {
+docker exec midatopay-backend-prod bunx prisma migrate deploy || {
     echo "⚠️  Advertencia: Las migraciones fallaron. Esto puede ser normal si ya están aplicadas."
 }
 

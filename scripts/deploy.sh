@@ -49,13 +49,13 @@ sleep 10
 
 # Ejecutar migraciones
 echo -e "${GREEN}🗄️  Ejecutando migraciones de base de datos...${NC}"
-docker exec midatopay-backend-prod npx prisma migrate deploy || {
+docker exec midatopay-backend-prod bunx prisma migrate deploy || {
     echo -e "${YELLOW}⚠️  Advertencia: Las migraciones fallaron. Esto puede ser normal si ya están aplicadas.${NC}"
 }
 
 # Generar cliente de Prisma
 echo -e "${GREEN}🔧 Generando cliente de Prisma...${NC}"
-docker exec midatopay-backend-prod npx prisma generate || {
+docker exec midatopay-backend-prod bunx prisma generate || {
     echo -e "${YELLOW}⚠️  Advertencia: Error generando cliente de Prisma${NC}"
 }
 

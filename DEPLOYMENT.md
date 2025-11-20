@@ -411,8 +411,8 @@ docker-compose -f docker-compose.prod.yml logs -f
 docker exec -it midatopay-backend-prod bash
 
 # Dentro del contenedor, ejecutar migraciones
-npx prisma migrate deploy
-npx prisma generate
+bunx prisma migrate deploy
+bunx prisma generate
 
 # Salir del contenedor
 exit
@@ -567,7 +567,7 @@ Para referencia rápida, aquí están los pasos esenciales en orden:
 7. **Configurar Nginx:** `/etc/nginx/sites-available/midatopay`
 8. **Configurar SSL:** `certbot --nginx -d midatopay.com -d www.midatopay.com`
 9. **Desplegar:** `docker-compose -f docker-compose.prod.yml up -d --build`
-10. **Migraciones:** `docker exec midatopay-backend-prod npx prisma migrate deploy`
+10. **Migraciones:** `docker exec midatopay-backend-prod bunx prisma migrate deploy`
 
 **Comandos clave:**
 ```bash
@@ -623,7 +623,7 @@ docker-compose -f docker-compose.prod.yml restart
 ### Archivos para Mostrar al Equipo:
 
 1. **Dockerfiles:**
-   - `backend/Dockerfile` - Backend Node.js optimizado
+   - `backend/Dockerfile` - Backend Bun/Express optimizado
    - `frontend/Dockerfile` - Frontend Next.js optimizado
 
 2. **Docker Compose:**
@@ -648,7 +648,7 @@ cp frontend/env.example frontend/.env.local
 docker-compose up -d
 
 # 4. Ejecutar migraciones
-docker exec midatopay-backend npx prisma migrate dev
+docker exec midatopay-backend bunx prisma migrate dev
 
 # 5. Acceder:
 # - Frontend: http://localhost:3000

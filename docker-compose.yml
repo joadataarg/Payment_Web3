@@ -39,7 +39,7 @@ services:
     networks:
       - midatopay-network
     restart: unless-stopped
-    command: npm run dev
+    command: bun run dev
 
   # Frontend Next.js
   frontend:
@@ -61,7 +61,7 @@ services:
     networks:
       - midatopay-network
     restart: unless-stopped
-    command: npm run dev
+    command: bun run dev
 
   # Redis para cache (opcional)
   redis:

@@ -86,7 +86,7 @@ MidatoPay offers a complete platform that includes:
                             │
                             ▼
 ┌─────────────────────────────────────────────────────────────┐
-│                 Backend (Node.js/Express)                   │
+│                 Backend (Bun/Express)                       │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐     │
 │  │ MidatoPay    │  │   Oracle     │  │   Payment    │     │
 │  │   Service    │  │   Service    │  │   Gateway    │     │
@@ -131,7 +131,7 @@ MidatoPay offers a complete platform that includes:
 - **ChipiPay SDK** - Wallet creation (`@chipi-stack/nextjs`)
 
 ### Backend
-- **Node.js** - JavaScript runtime
+- **Bun** - JavaScript runtime
 - **Express.js** - Web framework
 - **Prisma** - Database ORM
 - **WebSocket** - Real-time communication
@@ -150,7 +150,7 @@ MidatoPay offers a complete platform that includes:
 ## 📦 Installation and Configuration
 
 ### Prerequisites
-- Node.js 18+
+- Bun 1.1+
 - PostgreSQL 15+
 - Git
 - Starkli CLI
@@ -209,30 +209,30 @@ cd midatopay
 2. **Install frontend dependencies**
 ```bash
 cd frontend
-npm install
+bun install
 ```
 
 3. **Install backend dependencies**
 ```bash
 cd ../backend
-npm install
+bun install
 ```
 
 4. **Set up the database**
 ```bash
-npx prisma migrate dev
-npx prisma generate
+bunx prisma migrate dev
+bunx prisma generate
 ```
 
 5. **Start the development servers**
 ```bash
 # Terminal 1 - Backend
 cd backend
-npm run dev
+bun run dev
 
 # Terminal 2 - Frontend
 cd frontend
-npm run dev
+bun run dev
 ```
 
 ## 🚀 Complete User Flow
@@ -662,7 +662,7 @@ CREATE TABLE price_oracle (
 1. **Build the application**:
 ```bash
 cd frontend
-npm run build
+bun run build
 ```
 
 2. **Set environment variables** in deployment platform
@@ -674,7 +674,7 @@ npm run build
 2. **Run migrations**:
 ```bash
 cd backend
-npx prisma migrate deploy
+bunx prisma migrate deploy
 ```
 
 3. **Deploy** to platform (Heroku, Railway, AWS, etc.)

@@ -1,46 +1,29 @@
-FROM node:18-alpine
+FROM oven/bun:1.1.32-alpine AS base
 
-# Build arguments para variables de entorno en tiempo de build
+RUN apk add --no-cache curl
+
+# Build arguments para variables públicas de Next.js
 ARG NEXT_PUBLIC_API_URL
 ARG NEXT_PUBLIC_WS_URL
-
-# Establecer como variables de entorno para el build
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_WS_URL=$NEXT_PUBLIC_WS_URL
 
-# Establecer directorio de trabajo
 WORKDIR /app
 
-# Copiar archivos de dependencias
-COPY package*.json ./
+FROM base AS deps
+COPY bun.lock package.json ./
+RUN bun install --frozen-lockfile
 
-# Instalar dependencias (necesitamos devDependencies para el build)
-# Usar --legacy-peer-deps para resolver conflictos de peer dependencies
-RUN npm ci --legacy-peer-deps
-
-# Copiar código fuente
+FROM deps AS builder
 COPY . .
+RUN bun run build
 
-# Build de la aplicación
-RUN npm run build
-
-# Limpiar devDependencies después del build
-RUN npm prune --production --legacy-peer-deps
-
-# ============================================
-# Configurar usuario no-root por seguridad
-# ============================================
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S nodejs -u 1001
-
-# Cambiar ownership de los archivos
-RUN chown -R nodejs:nodejs /app
-
-# Cambiar a usuario no-root
-USER nodejs
-
-# Exponer puerto
+FROM base AS runner
+ENV NODE_ENV=production
+WORKDIR /app
+COPY --from=builder /app ./
+RUN rm -rf node_modules && bun install --frozen-lockfile --production
+RUN chown -R bun:bun /app
+USER bun
 EXPOSE 3000
-
-# Comando por defecto
-CMD ["npm", "start"]
+CMD ["bun", "run", "start"]
