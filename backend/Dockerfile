@@ -14,7 +14,7 @@ RUN apt-get update && \
 
 # Instalar starkli CLI para ejecutar transacciones en Starknet
 RUN curl https://get.starkli.sh | sh
-RUN starkliup
+RUN ./.starkli/bin/starkliup
 
 ENV STARKLI_PATH=~/.starkli/bin/starkli
 
