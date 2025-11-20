@@ -38,6 +38,7 @@ MidatoPay is a revolutionary Web3 payment solution designed specifically for Arg
 ### 💡 Proposed Solution
 
 MidatoPay offers a complete platform that includes:
+
 - **ChipiPay Integration**: Wallet creation using ChipiPay SDK (wallet creation only)
 - **Starknet Smart Contracts**: Custom payment gateway contracts for transaction processing
 - **Automatic Wallet**: Merchant wallet generation and management
@@ -49,24 +50,28 @@ MidatoPay offers a complete platform that includes:
 ## ✨ Key Features
 
 ### 🛡️ Inflation Protection
+
 - Automatic ARS → USDT conversion using Starknet Oracle
 - Real-time prices updated every 30 seconds
 - Protection of merchant income value
 - Flexible conversion percentages (100%, 90%, 80%, 70%)
 
 ### ⚡ Instant Transactions
+
 - Direct integration with Starknet L2
 - Fast confirmations (< 2 minutes)
 - Minimal gas fees compared to Ethereum
 - Custom smart contracts for payment processing
 
 ### 🔗 Interoperable QR
+
 - EMVCo TLV standard implemented
 - Compatible with any wallet that supports the standard
 - Structured data: merchant address, amount, payment ID
 - QR code displayed prominently in dashboard
 
 ### 🎯 Simplified User Experience
+
 - Intuitive dashboard with QR generation as the first card
 - One-click QR generation
 - Easy scanning from any device
@@ -122,6 +127,7 @@ MidatoPay offers a complete platform that includes:
 ## 🔧 Technologies Used
 
 ### Frontend
+
 - **Next.js 14** - React framework with App Router
 - **TypeScript** - Static typing
 - **Tailwind CSS** - Utility-first CSS framework
@@ -131,6 +137,7 @@ MidatoPay offers a complete platform that includes:
 - **ChipiPay SDK** - Wallet creation (`@chipi-stack/nextjs`)
 
 ### Backend
+
 - **Bun** - JavaScript runtime
 - **Express.js** - Web framework
 - **Prisma** - Database ORM
@@ -138,27 +145,31 @@ MidatoPay offers a complete platform that includes:
 - **Starkli** - CLI for Starknet interactions
 
 ### Blockchain
+
 - **Starknet Sepolia** - Test network
 - **Cairo** - Smart contract language
 - **OpenZeppelin** - Contract libraries
 - **ChipiPay SDK** - Wallet creation only (`@chipi-stack/backend`)
 
 ### Database
+
 - **PostgreSQL** - Relational database
 - **Prisma Migrate** - Schema migrations
 
 ## 📦 Installation and Configuration
 
 ### Prerequisites
+
 - Bun 1.1+ (Docker builds default to `1.1.32`, override with `BUN_VERSION=1.x.x` if you need a different release)
+- Starkli CLI (auto-installed in the backend Docker image as `STARKLI_VERSION=0.1.24`; install it locally or override `STARKLI_VERSION`/`STARKLI_TARGET` build args if you run the backend outside Docker)
 - PostgreSQL 15+
 - Git
-- Starkli CLI
 - ChipiPay API credentials
 
 ### Environment Variables
 
 #### Frontend (`.env.local`)
+
 ```env
 # ChipiPay - Wallet Creation Only
 NEXT_PUBLIC_CHIPI_API_KEY=your_chipipay_api_key
@@ -177,6 +188,7 @@ NEXT_PUBLIC_USDT_CONTRACT_ADDRESS=0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c
 ```
 
 #### Backend (`.env`)
+
 ```env
 # Database
 DATABASE_URL=postgresql://user:password@localhost:5432/midatopay
@@ -201,30 +213,35 @@ ORACLE_CONTRACT_ADDRESS=your_oracle_contract_address
 ### Installation Steps
 
 1. **Clone the repository**
+
 ```bash
 git clone https://github.com/yourusername/midatopay.git
 cd midatopay
 ```
 
 2. **Install frontend dependencies**
+
 ```bash
 cd frontend
 bun install
 ```
 
 3. **Install backend dependencies**
+
 ```bash
 cd ../backend
 bun install
 ```
 
 4. **Set up the database**
+
 ```bash
 bunx prisma migrate dev
 bunx prisma generate
 ```
 
 5. **Start the development servers**
+
 ```bash
 # Terminal 1 - Backend
 cd backend
@@ -238,17 +255,20 @@ bun run dev
 ## 🚀 Complete User Flow
 
 ### 1. 🏠 Homepage
+
 - Landing page with product information
 - Call-to-action for registration
 - Statistics and key features
 
 ### 2. 🔐 Registration and Login
+
 - **Registration**: Email, name, phone, business name
 - **Login**: JWT authentication or Clerk OAuth (Google)
 - **Roles**: MERCHANT, ADMIN
 - **Onboarding**: Business name collection for new users
 
 ### 3. 🔑 Wallet Creation with ChipiPay
+
 - **ChipiPay Integration**: Uses ChipiPay SDK exclusively for wallet creation
 - **PIN Setup**: User creates a 4+ character PIN for wallet encryption
 - **Automatic Generation**: Wallet is created on Starknet Sepolia
@@ -256,9 +276,11 @@ bun run dev
 - **Note**: After wallet creation, all transactions use our custom Starknet contracts
 
 ### 4. 💼 Merchant Dashboard
+
 The dashboard is designed to be intuitive with the QR generation as the primary feature:
 
 #### Dashboard Layout:
+
 1. **Welcome Section**: Personalized greeting with merchant name
 2. **Total Balance Card**: Shows USDT balance prominently
 3. **QR Generation Card** (First Card - Primary Feature):
@@ -271,8 +293,9 @@ The dashboard is designed to be intuitive with the QR generation as the primary 
 ### 5. 💰 Payment Management with Percentage Selection
 
 #### Before Generating QR:
+
 1. **Enter Amount**: Merchant enters amount in ARS
-2. **Select Conversion Percentage**: 
+2. **Select Conversion Percentage**:
    - **100%**: Entire amount converted to USDT
    - **90%**: 90% converted to USDT, 10% remains in ARS
    - **80%**: 80% converted to USDT, 20% remains in ARS
@@ -284,18 +307,21 @@ The dashboard is designed to be intuitive with the QR generation as the primary 
 4. **Generate QR**: Creates interoperable QR code with payment details
 
 #### QR Code Contains:
+
 - Merchant wallet address (normalized to 66 characters)
 - Amount in USDT (after percentage conversion)
 - Payment ID (unique identifier)
 - EMVCo TLV format for interoperability
 
 ### 6. 📱 QR Scanning
+
 - **Camera**: Automatic QR scanning
 - **Validation**: EMVCo TLV data verification
 - **Processing**: Starknet transaction execution using our custom contracts
 - **Confirmation**: Transaction hash and link to Starkscan
 
 ### 7. ✅ Transaction Result
+
 - **Status**: Pending → Completed
 - **Hash**: Link to blockchain explorer
 - **Details**: Amount, merchant, timestamp
@@ -308,17 +334,20 @@ The dashboard is the central hub for merchants, designed with simplicity and eff
 ### Main Features:
 
 1. **QR Generation Card** (Primary - First Card):
+
    - Large, prominent card for quick QR generation
    - Shows current USDT balance
    - Direct link to create payment QR
    - One-click access to payment creation
 
 2. **Balance Display**:
+
    - Real-time USDT balance from Starknet
    - ChipiPay USDC balance (if wallet created)
    - Total revenue statistics
 
 3. **Wallet Management**:
+
    - ChipiPay wallet status
    - Wallet address (normalized to 66 characters)
    - Balance information
@@ -329,9 +358,10 @@ The dashboard is the central hub for merchants, designed with simplicity and eff
    - Quick access to details
 
 ### Dashboard Flow:
+
 ```
-Dashboard → QR Generation Card → Create Payment → 
-Select Amount → Choose Percentage → Generate QR → 
+Dashboard → QR Generation Card → Create Payment →
+Select Amount → Choose Percentage → Generate QR →
 Display QR → Customer Scans → Transaction Processed
 ```
 
@@ -340,11 +370,13 @@ Display QR → Customer Scans → Transaction Processed
 ### Important: ChipiPay is Used ONLY for Wallet Creation and Integration
 
 **ChipiPay helps us with:**
+
 - ✅ Wallet creation on Starknet
 - ✅ Wallet integration and setup
 - ✅ Initial wallet generation process
 
 **After wallet creation, everything else is our own implementation:**
+
 - ✅ All payment transactions use **our custom Starknet smart contracts**
 - ✅ Our own payment gateway contract
 - ✅ Our own Oracle integration for ARS/USDT conversion
@@ -364,7 +396,7 @@ Display QR → Customer Scans → Transaction Processed
    - ChipiPay creates wallet on Starknet Sepolia
    - Returns wallet address and encrypted private key
    - Address is normalized to 66 characters (0x + 64 hex)
-5. **Storage**: 
+5. **Storage**:
    - Wallet address saved to database
    - Encrypted private key stored securely
    - Wallet ready for transactions
@@ -399,14 +431,14 @@ After wallet creation with ChipiPay, MidatoPay uses **custom smart contracts** d
 mod PaymentGateway {
     use starknet::ContractAddress;
     use starknet::get_caller_address;
-    
+
     #[storage]
     struct Storage {
         admin: ContractAddress,
         usdt_token: ContractAddress,
         oracle: ContractAddress,
     }
-    
+
     #[external(v0)]
     fn pay(
         ref self: ContractState,
@@ -428,13 +460,13 @@ mod PaymentGateway {
 #[contract]
 mod PriceOracle {
     use starknet::ContractAddress;
-    
+
     #[storage]
     struct Storage {
         scale: u256,
         price_feed: ContractAddress,
     }
-    
+
     #[external(v0)]
     fn quote_ars_to_usdt(ref self: ContractState, amount_ars: u256) -> u256 {
         // Oracle implementation for ARS → USDT conversion
@@ -445,6 +477,7 @@ mod PriceOracle {
 ```
 
 ### Contract Features:
+
 - **Gas Optimized**: Efficient use of storage and compute
 - **Security**: Validations and security checks
 - **Scalability**: Designed for high transaction volume
@@ -457,7 +490,7 @@ mod PriceOracle {
 1. **Oracle Query**: System queries Starknet Oracle contract for current ARS/USDT rate
 2. **Real-time Rate**: Oracle provides up-to-date exchange rate
 3. **Percentage Application**: Selected percentage (100%, 90%, 80%, 70%) is applied
-4. **Calculation**: 
+4. **Calculation**:
    ```
    USDT Amount = (ARS Amount × Exchange Rate) × (Percentage / 100)
    Remaining ARS = ARS Amount × (100 - Percentage) / 100
@@ -537,6 +570,7 @@ The percentage selection is displayed prominently before QR generation:
 ## 🔗 API Endpoints
 
 ### Authentication
+
 ```http
 POST /api/auth/register
 POST /api/auth/login
@@ -545,12 +579,14 @@ PUT  /api/auth/profile
 ```
 
 ### Wallet (ChipiPay - Creation Only)
+
 ```http
 POST /api/chipipay/create-wallet
 POST /api/chipipay/save-wallet
 ```
 
 ### Payments
+
 ```http
 POST /api/midatopay/generate-qr
 POST /api/midatopay/scan-qr
@@ -559,6 +595,7 @@ GET  /api/midatopay/stats/:merchantId
 ```
 
 ### Oracle
+
 ```http
 GET /api/oracle/price/ars-usdt
 GET /api/oracle/quote/:amount
@@ -566,6 +603,7 @@ GET /api/prices/latest?currency=USDT&baseCurrency=ARS
 ```
 
 ### Transactions
+
 ```http
 POST /api/chipipay/transactions
 GET  /api/chipipay/transactions
@@ -575,18 +613,21 @@ GET  /api/chipipay/transactions/:txHash
 ## 🔐 Security
 
 ### Encryption
+
 - **Private Keys**: Encrypted with AES-256 (via ChipiPay)
 - **JWT Tokens**: Signed with secure secret
 - **HTTPS**: Encrypted communication
 - **PIN Protection**: User PIN encrypts wallet private key
 
 ### Validations
+
 - **Input Validation**: Input sanitization
 - **Rate Limiting**: Protection against spam
 - **CORS**: Allowed domains configuration
 - **Address Normalization**: Ensures valid Starknet addresses
 
 ### Database
+
 - **Prisma**: ORM with SQL injection protection
 - **Migrations**: Schema version control
 - **Backups**: Automatic backups
@@ -660,6 +701,7 @@ CREATE TABLE price_oracle (
 ### Frontend Deployment (Vercel/Netlify)
 
 1. **Build the application**:
+
 ```bash
 cd frontend
 bun run build
@@ -672,6 +714,7 @@ bun run build
 
 1. **Set up PostgreSQL database** (AWS RDS, Heroku, etc.)
 2. **Run migrations**:
+
 ```bash
 cd backend
 bunx prisma migrate deploy
@@ -683,12 +726,14 @@ bunx prisma migrate deploy
 ### Smart Contracts Deployment
 
 1. **Compile contracts**:
+
 ```bash
 cd cairo-contracts
 scarb build
 ```
 
 2. **Deploy to Starknet Sepolia**:
+
 ```bash
 starkli deploy payment_gateway.sierra.json --account your_account
 starkli deploy oracle.sierra.json --account your_account
@@ -700,7 +745,8 @@ starkli deploy oracle.sierra.json --account your_account
 
 ### What Makes MidatoPay Unique:
 
-1. **Hybrid Approach**: 
+1. **Hybrid Approach**:
+
    - Uses ChipiPay **only** for wallet creation and integration (simplifies onboarding)
    - **Everything else** is our own implementation:
      - Custom Starknet contracts for transactions (full control)
@@ -708,16 +754,19 @@ starkli deploy oracle.sierra.json --account your_account
      - Our own payment processing system
      - Our own QR code generation
 
-2. **Inflation Protection**: 
+2. **Inflation Protection**:
+
    - Real-time ARS to USDT conversion
    - Flexible percentage selection (merchants choose conversion rate)
 
 3. **User Experience**:
+
    - Intuitive dashboard with QR generation as primary feature
    - One-click payment creation
    - Simple percentage selection
 
 4. **Starknet Integration**:
+
    - Custom smart contracts for payment processing
    - Oracle-based price conversion
    - Gas-efficient transactions
