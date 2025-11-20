@@ -24,6 +24,7 @@ import { useOracleConversion } from '@/hooks/useOracleConversion'
 import { useCavosConversion } from '@/hooks/useCavosConversion'
 import { useCavosWallet } from '@/hooks/useCavosWallet'
 import { CavosBalance } from '@/components/CavosBalance'
+import QRCode from 'qrcode'
 
 export default function CreatePaymentPage() {
   const { user, isAuthenticated } = useAuth()
@@ -127,7 +128,7 @@ export default function CreatePaymentPage() {
 
         // Generar QR para Cavos (no requiere wallet conectada para generar QR)
         // El QR contiene la información del pago ARS → USDT
-        const cavosData = {
+        const paymentData = {
           success: true,
           paymentData: {
             amountARS: data.amount,
@@ -138,8 +139,23 @@ export default function CreatePaymentPage() {
             exchangeRate: '1000 ARS = 1 USDT',
             merchantName: 'MidatoPay - Cavos',
             walletAddress: cavosAddress || null // Opcional: incluir wallet si está conectada
-          },
-          qrCodeImage: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2ZmZiIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiMwMDAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5DYXZvczx0c3BhbiBkeT0iLjhlbSI+VVNEVDwvdHNwYW4+PC90ZXh0Pjwvc3ZnPg=='
+          }
+        }
+
+        // Generar QR code con los datos JSON
+        const qrDataString = JSON.stringify(paymentData)
+        const qrCodeImage = await QRCode.toDataURL(qrDataString, {
+          width: 300,
+          margin: 2,
+          color: {
+            dark: '#000000',
+            light: '#FFFFFF'
+          }
+        })
+
+        const cavosData = {
+          ...paymentData,
+          qrCodeImage
         }
 
         setQrData(cavosData)

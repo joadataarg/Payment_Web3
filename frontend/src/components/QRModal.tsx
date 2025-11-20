@@ -65,12 +65,17 @@ export function QRModal({
 
   const handleCopyQR = async () => {
     try {
-      await navigator.clipboard.writeText(qrData.qrCodeImage);
+      // Copiar los datos JSON del QR (no la imagen) para que pueda ser pegado en el scanner
+      const qrDataString = JSON.stringify({
+        success: qrData.paymentData ? true : false,
+        paymentData: qrData.paymentData
+      });
+      await navigator.clipboard.writeText(qrDataString);
       setCopied(true);
-      toast.success(t.dashboard.createPayment.qrModal.success.qrCopied);
+      toast.success(t.dashboard.createPayment.qrModal.success.qrCopied || 'QR data copied to clipboard');
       setTimeout(() => setCopied(false), 2000);
     } catch (error) {
-      toast.error(t.dashboard.createPayment.qrModal.errors.errorCopyingQR);
+      toast.error(t.dashboard.createPayment.qrModal.errors.errorCopyingQR || 'Error copying QR data');
     }
   };
 

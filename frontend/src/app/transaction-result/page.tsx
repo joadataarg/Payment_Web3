@@ -33,6 +33,7 @@ export default function TransactionResultPage() {
 
   useEffect(() => {
     // Obtener datos de la transacción desde los parámetros de URL
+    const type = searchParams.get('type')
     const paymentId = searchParams.get('paymentId')
     const merchantAddress = searchParams.get('merchantAddress')
     const amountARS = searchParams.get('amountARS')
@@ -42,6 +43,34 @@ export default function TransactionResultPage() {
     const txHash = searchParams.get('txHash')
     const explorerUrl = searchParams.get('explorerUrl')
 
+    // Manejar formato Cavos
+    if (type === 'cavos') {
+      const sessionId = searchParams.get('sessionId')
+      const cryptoAmount = searchParams.get('cryptoAmount')
+      const targetCrypto = searchParams.get('targetCrypto')
+      const walletAddress = searchParams.get('walletAddress')
+      
+      if (amountARS && sessionId) {
+        setTransactionData({
+          paymentId: sessionId,
+          merchantAddress: walletAddress || 'N/A',
+          amountARS: parseFloat(amountARS),
+          merchantName: merchantName || 'MidatoPay - Cavos',
+          concept: `${cryptoAmount} ${targetCrypto || 'USDT'}`,
+          expiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
+          status: status || 'PENDING',
+          blockchainTransaction: txHash ? {
+            hash: txHash,
+            explorerUrl: explorerUrl || `https://sepolia.starkscan.co/tx/${txHash}`,
+            success: true
+          } : undefined
+        })
+        setLoading(false)
+        return
+      }
+    }
+
+    // Manejar formato EMV tradicional
     if (paymentId && merchantAddress && amountARS) {
       setTransactionData({
         paymentId,

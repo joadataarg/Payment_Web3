@@ -5,11 +5,12 @@ import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { QrCode, Camera, AlertCircle, CheckCircle, ArrowLeft } from 'lucide-react'
+import { QrCode, Camera, AlertCircle, CheckCircle, ArrowLeft, Upload, Clipboard, FileText } from 'lucide-react'
 import Link from 'next/link'
 import toast from 'react-hot-toast'
 // Usar API nativa del navegador + jsQR para detectar QR codes
 import jsQR from 'jsqr'
+import { Input } from '@/components/ui/input'
 
 export default function QRScannerPage() {
   const router = useRouter()
@@ -23,6 +24,10 @@ export default function QRScannerPage() {
   const [isScannerReady, setIsScannerReady] = useState(false)
   const [scanInterval, setScanInterval] = useState<NodeJS.Timeout | null>(null)
   const [isInitialized, setIsInitialized] = useState(false)
+  const [showManualInput, setShowManualInput] = useState(false)
+  const [manualQRData, setManualQRData] = useState('')
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [isDragging, setIsDragging] = useState(false)
 
   // Inicializar cámara usando API nativa
   useEffect(() => {
@@ -170,8 +175,35 @@ export default function QRScannerPage() {
     try {
       console.log('🔍 Procesando QR:', qrData)
       
+      // Intentar parsear como JSON primero (formato Cavos)
+      let paymentData = null
+      try {
+        const jsonData = JSON.parse(qrData)
+        if (jsonData.success && jsonData.paymentData) {
+          // Es un QR de Cavos (formato JSON)
+          console.log('📱 QR Cavos detectado:', jsonData)
+          // Para Cavos, redirigir a la página de procesamiento de pago
+          toast.success('QR Cavos detectado correctamente')
+          // Guardar datos en localStorage o redirigir a página de pago
+          const params = new URLSearchParams({
+            type: 'cavos',
+            amountARS: jsonData.paymentData.amountARS.toString(),
+            cryptoAmount: jsonData.paymentData.cryptoAmount.toString(),
+            targetCrypto: jsonData.paymentData.targetCrypto,
+            sessionId: jsonData.paymentData.sessionId,
+            merchantName: jsonData.paymentData.merchantName || 'MidatoPay - Cavos',
+            walletAddress: jsonData.paymentData.walletAddress || ''
+          })
+          router.push(`/transaction-result?${params.toString()}`)
+          return
+        }
+      } catch (e) {
+        // No es JSON, intentar parsear como EMV
+        console.log('No es JSON, intentando parsear como EMV...')
+      }
+      
       // Parsear el QR EMVCo TLV
-      const paymentData = parseEMVQR(qrData)
+      paymentData = parseEMVQR(qrData)
       
       if (!paymentData) {
         toast.error('QR Code no válido')
@@ -298,7 +330,119 @@ export default function QRScannerPage() {
   const retryScanning = () => {
     setScannedData(null)
     setError(null)
+    setShowManualInput(false)
+    setManualQRData('')
     startScanning()
+  }
+
+  // Manejar pegado de datos QR
+  const handlePasteQR = async () => {
+    try {
+      const text = await navigator.clipboard.readText()
+      if (text) {
+        setManualQRData(text)
+        setShowManualInput(true)
+        toast.success('Datos QR pegados desde el portapapeles')
+      }
+    } catch (error) {
+      toast.error('No se pudo leer el portapapeles. Por favor, pega manualmente.')
+      setShowManualInput(true)
+    }
+  }
+
+  // Procesar datos QR manuales
+  const handleProcessManualQR = () => {
+    if (!manualQRData.trim()) {
+      toast.error('Por favor, ingresa o pega los datos del QR')
+      return
+    }
+    processScannedQR(manualQRData.trim())
+  }
+
+  // Procesar imagen QR (usado tanto para upload como drag & drop)
+  const processQRImage = (file: File) => {
+    if (!file.type.startsWith('image/')) {
+      toast.error('Por favor, selecciona un archivo de imagen')
+      return
+    }
+
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      const img = new Image()
+      img.onload = () => {
+        // Crear canvas para procesar la imagen
+        const canvas = document.createElement('canvas')
+        const ctx = canvas.getContext('2d')
+        if (!ctx) {
+          toast.error('Error procesando la imagen')
+          return
+        }
+
+        canvas.width = img.width
+        canvas.height = img.height
+        ctx.drawImage(img, 0, 0)
+
+        // Intentar detectar QR code en la imagen
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
+        const code = jsQR(imageData.data, imageData.width, imageData.height)
+
+        if (code) {
+          console.log('QR Code detectado en imagen:', code.data)
+          processScannedQR(code.data)
+        } else {
+          toast.error('No se pudo detectar un QR code en la imagen')
+        }
+      }
+      img.onerror = () => {
+        toast.error('Error cargando la imagen')
+      }
+      img.src = e.target?.result as string
+    }
+    reader.onerror = () => {
+      toast.error('Error leyendo el archivo')
+    }
+    reader.readAsDataURL(file)
+  }
+
+  // Manejar carga de imagen QR
+  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+    processQRImage(file)
+  }
+
+  // Manejar drag and drop
+  const handleDragEnter = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(true)
+  }
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(false)
+  }
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+  }
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(false)
+
+    const files = e.dataTransfer.files
+    if (files && files.length > 0) {
+      const file = files[0]
+      if (file.type.startsWith('image/')) {
+        processQRImage(file)
+      } else {
+        toast.error('Por favor, arrastra un archivo de imagen')
+      }
+    }
   }
 
   return (
@@ -326,7 +470,34 @@ export default function QRScannerPage() {
         </div>
       </header>
 
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div 
+        className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8"
+        onDragEnter={handleDragEnter}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+      >
+        {/* Drag and Drop Overlay */}
+        {isDragging && (
+          <div className="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center pointer-events-none">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="bg-white rounded-2xl p-8 max-w-md mx-4"
+            >
+              <div className="text-center">
+                <Upload className="w-16 h-16 mx-auto mb-4" style={{ color: '#fe6c1c' }} />
+                <h3 className="text-xl font-bold mb-2" style={{ color: '#1a1a1a' }}>
+                  Suelta la imagen del QR aquí
+                </h3>
+                <p className="text-sm" style={{ color: '#5d5d5d' }}>
+                  Arrastra y suelta una imagen con un código QR
+                </p>
+              </div>
+            </motion.div>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Scanner */}
           <motion.div
@@ -401,7 +572,7 @@ export default function QRScannerPage() {
                         </div>
                       )}
                       {/* Botones de control */}
-                      <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-2">
+                      <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-2 flex-wrap justify-center">
                         <Button 
                           onClick={simulateQRScan}
                           variant="outline"
@@ -423,6 +594,98 @@ export default function QRScannerPage() {
                         >
                           <Camera className="w-4 h-4 mr-2" />
                           Restart Camera
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Opciones alternativas: Copy/Paste y Upload */}
+                <div className="mt-4 space-y-3">
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={handlePasteQR}
+                      variant="outline"
+                      className="flex-1"
+                      size="sm"
+                    >
+                      <Clipboard className="w-4 h-4 mr-2" />
+                      Pegar QR
+                    </Button>
+                    <Button
+                      onClick={() => fileInputRef.current?.click()}
+                      variant="outline"
+                      className="flex-1"
+                      size="sm"
+                    >
+                      <Upload className="w-4 h-4 mr-2" />
+                      Subir Imagen
+                    </Button>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      className="hidden"
+                    />
+                  </div>
+                  
+                  {/* Drag and Drop Zone */}
+                  <div 
+                    className={`border-2 border-dashed rounded-lg p-4 text-center transition-colors ${
+                      isDragging 
+                        ? 'border-orange-500 bg-orange-50' 
+                        : 'border-gray-300 bg-gray-50 hover:border-orange-300 hover:bg-orange-50/50'
+                    }`}
+                    onDragEnter={handleDragEnter}
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    onDrop={handleDrop}
+                  >
+                    <Upload className="w-8 h-8 mx-auto mb-2" style={{ color: isDragging ? '#fe6c1c' : '#5d5d5d' }} />
+                    <p className="text-sm font-medium mb-1" style={{ color: isDragging ? '#fe6c1c' : '#1a1a1a' }}>
+                      Arrastra y suelta una imagen QR aquí
+                    </p>
+                    <p className="text-xs" style={{ color: '#5d5d5d' }}>
+                      o haz clic en "Subir Imagen" arriba
+                    </p>
+                  </div>
+
+                  {/* Input manual para pegar datos QR */}
+                  {showManualInput && (
+                    <div className="space-y-2">
+                      <div className="flex items-center space-x-2">
+                        <FileText className="w-4 h-4" style={{ color: '#fe6c1c' }} />
+                        <label className="text-sm font-medium">Datos del QR:</label>
+                      </div>
+                      <textarea
+                        value={manualQRData}
+                        onChange={(e) => setManualQRData(e.target.value)}
+                        placeholder="Pega aquí los datos del QR code..."
+                        className="w-full p-3 border rounded-lg resize-none"
+                        rows={4}
+                        style={{
+                          borderColor: 'rgba(254,108,28,0.2)',
+                          fontFamily: 'monospace',
+                          fontSize: '12px'
+                        }}
+                      />
+                      <div className="flex gap-2">
+                        <Button
+                          onClick={handleProcessManualQR}
+                          className="flex-1"
+                          style={{ backgroundColor: '#fe6c1c', color: '#ffffff' }}
+                        >
+                          Procesar QR
+                        </Button>
+                        <Button
+                          onClick={() => {
+                            setShowManualInput(false)
+                            setManualQRData('')
+                          }}
+                          variant="outline"
+                        >
+                          Cancelar
                         </Button>
                       </div>
                     </div>
