@@ -62,7 +62,7 @@ export default function CreatePaymentPage() {
   const { convertARSToCrypto, loading: oracleLoading } = useOracleConversion()
   
   // Hooks de Cavos (USDT)
-  const { address: cavosAddress, isConnected: isCavosConnected } = useCavosWallet()
+  const { address: cavosAddress, isConnected: isCavosConnected, wallet: cavosWallet } = useCavosWallet()
   const { convertARSToUSDT, isConverting: cavosConverting } = useCavosConversion()
   
   const [cryptoAmount, setCryptoAmount] = useState<number | null>(null)
@@ -147,9 +147,51 @@ export default function CreatePaymentPage() {
         toast.success(`QR Cavos generado: ${adjustedCryptoAmount.toFixed(6)} USDT`)
       } else {
         // Usar sistema actual para generar QR
+        // Asegurarse de que la wallet esté guardada en DB antes de generar QR
+        let walletToUse: string | undefined = cavosAddress || undefined
+        
+        // Si tenemos wallet en localStorage, intentar guardarla en DB primero
+        if (walletToUse && cavosWallet) {
+          try {
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
+            // Obtener token de autenticación
+            let authToken: string | null = null
+            try {
+              const authStorage = localStorage.getItem('auth-storage')
+              if (authStorage) {
+                const parsed = JSON.parse(authStorage)
+                authToken = parsed.state?.token || null
+              }
+            } catch (e) {
+              // Ignorar error de parsing
+            }
+            
+            // Intentar guardar wallet si no está en DB
+            await fetch(`${apiUrl}/api/cavos/save-wallet`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                ...(authToken && { 'Authorization': `Bearer ${authToken}` })
+              },
+              body: JSON.stringify({
+                walletAddress: walletToUse,
+                publicKey: walletToUse,
+                privateKey: cavosWallet.privateKey || '', // Enviar clave privada si está disponible
+                txHash: cavosWallet.txHash || ''
+              })
+            }).catch(() => {
+              // Si falla, continuar de todas formas con el wallet del request
+              console.warn('No se pudo guardar wallet, usando wallet del request')
+            })
+          } catch (saveError) {
+            console.warn('Error guardando wallet antes de generar QR:', saveError)
+          }
+        }
+        
         const result = await midatoPayAPI.generatePaymentQR({
           amountARS: data.amount,
-          targetCrypto: 'USDT'
+          targetCrypto: 'USDT',
+          walletAddress: walletToUse // Pasar walletAddress en el request
         })
 
         if (result.success) {

@@ -10,12 +10,21 @@ class MidatoPayService {
   }
 
   // Generar QR de pago para comercio
-  async generatePaymentQR(merchantId, amountARS, concept = 'Pago QR') {
+  async generatePaymentQR(merchantId, amountARS, targetCrypto = 'USDT', concept = 'Pago QR', walletAddressFromRequest = null) {
     try {
       // 1. Obtener datos del comercio
-      const merchant = await this.getMerchant(merchantId);
+      let merchant = await this.getMerchant(merchantId);
       if (!merchant) {
         throw new Error('Merchant not found');
+      }
+      
+      // Si no tiene walletAddress pero se proporcionó en el request, usarla
+      if (!merchant.walletAddress && walletAddressFromRequest) {
+        console.log('✅ Usando walletAddress del request:', walletAddressFromRequest);
+        merchant = {
+          ...merchant,
+          walletAddress: walletAddressFromRequest
+        };
       }
 
       // 2. Generar payment ID único
@@ -82,7 +91,7 @@ class MidatoPayService {
           merchantAddress: merchant.walletAddress,
           merchantName: merchant.name,
           concept,
-          targetCrypto: 'USDT',
+          targetCrypto: targetCrypto || 'USDT',
           cryptoAmount,
           exchangeRate,
           sessionId: paymentId
@@ -112,8 +121,10 @@ class MidatoPayService {
       }
 
       // Usar la wallet real del comercio si existe
+      // Verificar si tiene walletAddress (puede ser de Cavos o del sistema anterior)
       if (!merchant.walletAddress) {
-        throw new Error('Merchant wallet not found. Please create a wallet first.');
+        // El usuario no tiene wallet. Necesita crear una primero.
+        throw new Error('Merchant wallet not found. Please create a wallet first. Go to /dashboard/billetera to create your Cavos wallet.');
       }
 
       console.log('✅ Merchant wallet encontrada:', merchant.walletAddress);
