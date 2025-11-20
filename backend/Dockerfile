@@ -8,10 +8,7 @@ ARG STARKLI_VERSION
 ARG STARKLI_TARGET
 
 # Dependencias de sistema necesarias para Prisma
-RUN apt-get update && \
-    /xz-utils && \
-    rm -rf /var/lib/apt/lists/*
-
+RUN apt update && apt install -y curl
 # Instalar starkli CLI para ejecutar transacciones en Starknet
 RUN curl https://get.starkli.sh | sh
 RUN ~/.starkli/bin/starkliup
