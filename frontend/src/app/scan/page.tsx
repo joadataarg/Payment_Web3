@@ -176,7 +176,6 @@ export default function QRScannerPage() {
       console.log('🔍 Procesando QR:', qrData)
       
       // Intentar parsear como JSON primero (formato Cavos)
-      let paymentData = null
       try {
         const jsonData = JSON.parse(qrData)
         if (jsonData.success && jsonData.paymentData) {
@@ -198,19 +197,13 @@ export default function QRScannerPage() {
           return
         }
       } catch (e) {
-        // No es JSON, intentar parsear como EMV
-        console.log('No es JSON, intentando parsear como EMV...')
+        // No es JSON, continuar con el backend para parsear EMV
+        console.log('No es JSON, enviando al backend para parsear EMV...')
       }
       
-      // Parsear el QR EMVCo TLV
-      paymentData = parseEMVQR(qrData)
-      
-      if (!paymentData) {
-        toast.error('QR Code no válido')
-        return
-      }
-
-      console.log('📱 Datos parseados:', paymentData)
+      // Enviar directamente al backend para que haga el parsing correcto
+      // El backend tiene el parser TLV adecuado que maneja diferentes formatos
+      console.log('📤 Enviando QR al backend para validación...')
 
       // Llamar al backend para verificar el pago
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/midatopay/scan-qr`, {
