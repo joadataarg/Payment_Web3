@@ -289,8 +289,8 @@ class MidatoPayService {
       );
       const keystorePassword = process.env.STARKNET_KEYSTORE_PASSWORD ? process.env.STARKNET_KEYSTORE_PASSWORD.trim() : 'vargaviella';
       
-      // Obtener RPC URL desde variables de entorno
-      const rpcUrl = process.env.STARKNET_RPC_URL || 'https://starknet-sepolia.public.blastapi.io/rpc/v0_7';
+      // Obtener RPC URL desde variables de entorno (STARKLI_RPC tiene prioridad, luego STARKNET_RPC_URL)
+      const rpcUrl = process.env.STARKLI_RPC || process.env.STARKNET_RPC_URL || 'https://starknet-sepolia.public.blastapi.io/rpc/v0_7';
       // Remover comillas si están presentes
       const cleanRpcUrl = rpcUrl.replace(/^["']|["']$/g, '');
       
