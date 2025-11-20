@@ -150,7 +150,7 @@ MidatoPay offers a complete platform that includes:
 ## 📦 Installation and Configuration
 
 ### Prerequisites
-- Bun 1.1+
+- Bun 1.1+ (Docker builds default to `1.1.32`, override with `BUN_VERSION=1.x.x` if you need a different release)
 - PostgreSQL 15+
 - Git
 - Starkli CLI

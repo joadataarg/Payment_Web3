@@ -1,4 +1,5 @@
-FROM oven/bun:1.1.32-debian AS base
+ARG BUN_VERSION=1.1.32
+FROM oven/bun:${BUN_VERSION}-debian AS base
 
 # Dependencias de sistema necesarias para Prisma
 RUN apt-get update && \

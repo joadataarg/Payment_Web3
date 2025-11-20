@@ -23,6 +23,8 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+      args:
+        BUN_VERSION: ${BUN_VERSION:-1.1.32}
     container_name: midatopay-backend
     environment:
       DATABASE_URL: postgresql://midatopay:midatopay123@postgres:5432/midatopay
@@ -46,6 +48,8 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        BUN_VERSION: ${BUN_VERSION:-1.1.32}
     container_name: midatopay-frontend
     environment:
       NEXT_PUBLIC_API_URL: http://localhost:3001
