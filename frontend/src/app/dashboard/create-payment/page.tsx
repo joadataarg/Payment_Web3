@@ -136,7 +136,7 @@ export default function CreatePaymentPage() {
             cryptoAmount: adjustedCryptoAmount,
             sessionId: `cavos-${Date.now()}`,
             timestamp: new Date().toISOString(),
-            exchangeRate: '1000 ARS = 1 USDT',
+            exchangeRate: '1411 ARS = 1 USDT',
             merchantName: 'MidatoPay - Cavos',
             walletAddress: cavosAddress || null // Opcional: incluir wallet si está conectada
           }

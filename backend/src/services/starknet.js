@@ -233,7 +233,7 @@ class StarknetService {
   async convertARSToToken(amountARS, currency) {
     // Usar las mismas tasas que el frontend por consistencia
     const rates = {
-      'USDT': 1380, // 1 USDT = 1380 ARS
+      'USDT': 1400, // 1 USDT = 1400 ARS
       'STRK': 2500  // 1 STRK = 2500 ARS (ejemplo)
     };
 

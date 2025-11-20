@@ -122,7 +122,7 @@ export default function SendPaymentPage() {
 
     try {
       // Obtener tasa de cambio ARS/USDT del backend o usar tasa por defecto
-      let arsToUsdtRate = 1000 // 1000 ARS = 1 USDT (tasa por defecto)
+      let arsToUsdtRate = 1411 // 1411 ARS = 1 USDT (tasa por defecto)
       
       // Intentar obtener tasa real del backend
       try {

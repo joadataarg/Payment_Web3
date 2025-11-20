@@ -5,7 +5,7 @@ import { useState, useCallback } from 'react'
 /**
  * Hook para conversión ARS → USDT usando Cavos
  * 
- * Usa una tasa fija de conversión: $1,000 ARS = 1 USDT
+ * Usa una tasa fija de conversión: $1,400 ARS = 1 USDT
  * Esta es una implementación frontend para pruebas.
  * 
  * @returns Función de conversión y estado de carga
@@ -23,8 +23,8 @@ export function useCavosConversion() {
     setIsConverting(true)
     
     try {
-      // Tasa fija: $1,000 ARS = 1 USDT
-      const exchangeRate = 1000
+      // Tasa fija: $1,400 ARS = 1 USDT
+      const exchangeRate = 1411
       const usdtAmount = amountARS / exchangeRate
       
       // Simular delay de red (opcional, para pruebas)
@@ -49,8 +49,8 @@ export function useCavosConversion() {
     setIsConverting(true)
     
     try {
-      // Tasa fija: 1 USDT = $1,000 ARS
-      const exchangeRate = 1000
+      // Tasa fija: 1 USDT = $1,400 ARS
+      const exchangeRate = 1411
       const arsAmount = amountUSDT * exchangeRate
       
       // Simular delay de red
@@ -69,7 +69,7 @@ export function useCavosConversion() {
     convertARSToUSDT,
     convertUSDTToARS,
     isConverting,
-    exchangeRate: 1000 // Tasa fija: $1,000 ARS = 1 USDT
+    exchangeRate: 1411 // Tasa fija: $1,400 ARS = 1 USDT
   }
 }
 

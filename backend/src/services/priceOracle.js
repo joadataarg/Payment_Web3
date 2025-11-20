@@ -59,7 +59,7 @@ async function getCurrentPrice(currency, baseCurrency = 'ARS') {
       console.warn(`⚠️ Rate inválido del Oracle: ${quoteResult.rate}, no se guarda en BD`);
       // Devolver un precio por defecto para evitar errores
       return {
-        price: 1000, // Precio por defecto: 1 USDT = 1000 ARS
+        price: 1411, // Precio por defecto: 1 USDT = 1411 ARS
         source: 'DEFAULT',
         timestamp: new Date()
       };

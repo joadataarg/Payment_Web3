@@ -49,10 +49,10 @@ export function QRModal({
 
   if (!isOpen || !qrData) return null;
 
-  // Calcular el monto en crypto usando la tasa fija: $1,000 ARS = 1 USDT/USDC
+  // Calcular el monto en crypto usando la tasa fija: $1,400 ARS = 1 USDT/USDC
   const calculateCryptoAmount = (amountARS: number): number => {
-    // Tasa fija: 1 USDT/USDC = 1,000 ARS
-    return amountARS / 1000;
+    // Tasa fija: 1 USDT/USDC = 1,400 ARS
+    return amountARS / 1411;
   };
 
   // Determinar el tipo de crypto (USDT para Cavos, USDT para sistema actual)
@@ -161,7 +161,7 @@ export function QRModal({
                 <span className="font-semibold">{t.dashboard.createPayment.qrModal.youWillReceive}</span> {cryptoAmount.toFixed(6)} {cryptoType}
               </p>
               <p className="text-xs text-blue-600 mt-1" style={{ fontFamily: 'Kufam, sans-serif' }}>
-                {cryptoType === 'USDC' ? '$1,000 ARS = 1 USDC' : t.dashboard.createPayment.exchangeRate}
+                {cryptoType === 'USDC' ? '$1,400 ARS = 1 USDC' : t.dashboard.createPayment.exchangeRate}
               </p>
             </div>
           </div>

@@ -61,13 +61,13 @@ class MidatoPayService {
         const oracle = new StarknetOracleService();
         const quote = await oracle.getARSToUSDTQuote(amountARS);
         cryptoAmount = quote.amountUSDT || quote.amountUSDT_raw || 0;
-        exchangeRate = quote.rate || 1000;
+        exchangeRate = quote.rate || 1411;
         console.log('✅ Cotización Oracle obtenida:', { cryptoAmount, exchangeRate });
       } catch (error) {
         console.warn('⚠️ No se pudo obtener cotización del Oracle:', error.message);
         // Usar valores por defecto si falla el Oracle
         cryptoAmount = amountARS * 0.001; // Rate aproximado
-        exchangeRate = 1000;
+        exchangeRate = 1411;
       }
 
       // 8. Guardar sesión en base de datos
