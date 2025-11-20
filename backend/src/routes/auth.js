@@ -5,6 +5,7 @@ const { body, validationResult } = require('express-validator');
 const prisma = require('../config/database');
 const { authenticateToken } = require('../middleware/auth');
 const { authenticateHybrid } = require('../middleware/clerkAuth');
+const { ensureBalance } = require('../services/offchainBalanceStore');
 
 const router = express.Router();
 
@@ -70,6 +71,8 @@ router.post('/register', [
       { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
     );
 
+    ensureBalance(user.id);
+
     res.status(201).json({
       message: 'Usuario registrado exitosamente',
       user,
@@ -120,6 +123,8 @@ router.post('/login', [
         code: 'INVALID_CREDENTIALS'
       });
     }
+
+    ensureBalance(user.id);
 
     // Generar token JWT
     const token = jwt.sign(

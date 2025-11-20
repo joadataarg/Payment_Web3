@@ -16,6 +16,7 @@ import { useCavosWallet } from '@/hooks/useCavosWallet'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { useAuth } from '@/store/auth'
 import jsQR from 'jsqr'
+import { useOffchainBalance } from '@/hooks/useOffchainBalance'
 
 /**
  * Página para escanear QR de ChipiPay y procesar pagos
@@ -26,6 +27,7 @@ export default function ScanChipiPayPage() {
   const { wallet: cavosWallet, address: cavosAddress, isConnected: isCavosConnected } = useCavosWallet()
   const { transfer, isLoading: isTransferring, lastTransactionHash } = useCavosTransfer()
   const { t } = useLanguage()
+  const { debit: debitOffchainBalance, refresh: refreshOffchainBalance } = useOffchainBalance()
   
     // Direcciones de contratos (usar las variables de entorno correctas)
     const USDT_CONTRACT = process.env.NEXT_PUBLIC_STARKNET_USDT_ADDRESS || '0x008D4C6451c45ef46Eff81b13e1a3F2237642b97E528Ce1ae1d8B8eE2b267e8D'
@@ -185,8 +187,18 @@ export default function ScanChipiPayPage() {
           })
 
           if (response.ok) {
+            try {
+              await debitOffchainBalance(scannedData.paymentData.amountARS, {
+                reason: `QR ${scannedData.paymentData.sessionId}`,
+                sessionId: scannedData.paymentData.sessionId
+              })
+            } catch (balanceError) {
+              console.error('Error updating off-chain balance:', balanceError)
+              toast.error('No se pudo actualizar el balance simulado. Intenta refrescar.')
+              refreshOffchainBalance()
+            }
+
             toast.success('Pago procesado exitosamente!')
-            // Redirigir a movimientos después de 2 segundos
             setTimeout(() => {
               router.push('/dashboard/movimientos')
             }, 2000)

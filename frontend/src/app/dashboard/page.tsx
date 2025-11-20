@@ -17,6 +17,7 @@ import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import toast from 'react-hot-toast'
 import { useCryptoConversion } from '@/hooks/useCryptoConversion'
+import { useOffchainBalance } from '@/hooks/useOffchainBalance'
 
 export default function DashboardPage() {
   const router = useRouter()
@@ -28,6 +29,12 @@ export default function DashboardPage() {
   const { user, isLoading: profileLoading, needsOnboarding, needsWallet } = useUserProfile()
   const { isSignedIn, isLoaded: isClerkAuthLoaded } = useClerkAuth()
   const { getRate, loading: rateLoading } = useCryptoConversion()
+  const {
+    balance: offchainBalance,
+    isLoading: offchainBalanceLoading,
+    error: offchainBalanceError,
+    refresh: refreshOffchainBalance
+  } = useOffchainBalance()
   
   // Debug: Verificar si venimos de OAuth callback
   useEffect(() => {
@@ -103,14 +110,27 @@ export default function DashboardPage() {
                   <div className="flex-1">
                     <p className="text-base font-medium" style={{ color: '#8B8B8B', fontFamily: 'Kufam, sans-serif', fontWeight: 400 }}>{t.dashboard.totalBalance}</p>
                     <p className="text-3xl font-bold" style={{ color: '#2C2C2C', fontFamily: 'Kufam, sans-serif', fontWeight: 700 }}>
-                      $ 0
+                      {offchainBalanceLoading
+                        ? '...'
+                        : offchainBalanceError
+                        ? '--'
+                        : `$ ${offchainBalance.toLocaleString('es-AR', {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2
+                          })}`}
                     </p>
                   </div>
                   <div className="flex items-center space-x-1">
                     <svg className="w-4 h-4" style={{ color: '#8B8B8B' }} fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M5.293 9.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 7.414V15a1 1 0 11-2 0V7.414L6.707 9.707a1 1 0 01-1.414 0z" clipRule="evenodd" />
                     </svg>
-                    <span className="font-medium" style={{ color: '#8B8B8B', fontFamily: 'Kufam, sans-serif', fontWeight: 500 }}>--</span>
+                    <button
+                      onClick={refreshOffchainBalance}
+                      className="font-medium underline text-sm"
+                      style={{ color: '#8B8B8B', fontFamily: 'Kufam, sans-serif', fontWeight: 500 }}
+                    >
+                      Actualizar
+                    </button>
                   </div>
                 </div>
               </CardContent>

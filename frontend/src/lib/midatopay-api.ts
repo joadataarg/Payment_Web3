@@ -77,6 +77,22 @@ class MidatoPayAPI {
   async getPaymentSession(sessionId: string) {
     return this.request(`/api/midatopay/session/${sessionId}`);
   }
+
+  async getOffchainBalance() {
+    return this.request('/api/balance');
+  }
+
+  async adjustOffchainBalance(data: {
+    type: 'credit' | 'debit';
+    amount: number;
+    reason?: string;
+    sessionId?: string | null;
+  }) {
+    return this.request('/api/balance/adjust', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  }
 }
 
 export const midatoPayAPI = new MidatoPayAPI();

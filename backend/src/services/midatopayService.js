@@ -1,6 +1,14 @@
 const { EMVQRGenerator, EMVQRParser } = require('./emvQRGenerator');
 const CavosService = require('./cavosService');
 const prisma = require('../config/database');
+const {
+  ensureBalance,
+  hasSufficientBalance,
+  debit: debitBalance,
+  credit: creditBalance,
+  getBalance,
+  BalanceError
+} = require('./offchainBalanceStore');
 
 class MidatoPayService {
   constructor() {
@@ -17,6 +25,8 @@ class MidatoPayService {
       if (!merchant) {
         throw new Error('Merchant not found');
       }
+
+      ensureBalance(merchantId);
       
       // Si no tiene walletAddress pero se proporcionó en el request, usarla
       if (!merchant.walletAddress && walletAddressFromRequest) {
@@ -455,6 +465,15 @@ class MidatoPayService {
         throw new Error('El pago ya fue procesado');
       }
 
+      ensureBalance(payment.userId);
+
+      if (!hasSufficientBalance(payment.userId, payment.amount)) {
+        throw new BalanceError('INSUFFICIENT_FUNDS', 'Fondos insuficientes para completar esta transacción', {
+          balance: getBalance(payment.userId).balance,
+          required: payment.amount
+        });
+      }
+
       // 🚀 EJECUTAR STARKLI AQUÍ - Cuando se escanea el QR
       console.log('🚀 QR escaneado - Ejecutando transacción en Starknet...');
       let starkliResult = null;
@@ -484,6 +503,7 @@ class MidatoPayService {
 
       // 📝 ACTUALIZAR ESTADO DEL PAGO si la transacción fue exitosa
       if (starkliResult && starkliResult.success) {
+        let balanceDebited = false;
         try {
           await prisma.payment.update({
             where: { id: payment.id },
@@ -493,8 +513,26 @@ class MidatoPayService {
             }
           });
           console.log('✅ Estado del pago actualizado a PAID');
+
+          debitBalance(payment.userId, payment.amount, {
+            reason: `QR ${payment.orderId}`,
+            sessionId: payment.orderId,
+            actor: 'qr-scan'
+          });
+          balanceDebited = true;
         } catch (updateError) {
           console.warn('⚠️ Error actualizando estado del pago:', updateError.message);
+          if (balanceDebited) {
+            try {
+              creditBalance(payment.userId, payment.amount, {
+                reason: 'Rollback por error al actualizar pago',
+                sessionId: payment.orderId,
+                actor: 'qr-scan'
+              });
+            } catch (creditErr) {
+              console.error('❌ Error al revertir balance off-chain:', creditErr);
+            }
+          }
         }
       }
       
@@ -555,6 +593,15 @@ class MidatoPayService {
         throw new Error('El monto no coincide');
       }
 
+      ensureBalance(payment.userId);
+
+      if (!hasSufficientBalance(payment.userId, payment.amount)) {
+        throw new BalanceError('INSUFFICIENT_FUNDS', 'Fondos insuficientes para completar este pago', {
+          balance: getBalance(payment.userId).balance,
+          required: payment.amount
+        });
+      }
+
       // Simular procesamiento de pago ARS
       // En producción, aquí se integraría con el sistema bancario argentino
       await new Promise(resolve => setTimeout(resolve, 1000));
@@ -584,6 +631,12 @@ class MidatoPayService {
           status: 'PAID',
           updatedAt: new Date()
         }
+      });
+
+      debitBalance(payment.userId, payment.amount, {
+        reason: `ARS Payment ${payment.orderId}`,
+        sessionId: payment.orderId,
+        actor: 'ars-payment'
       });
 
       // Crear transacción de crypto con datos del Oracle

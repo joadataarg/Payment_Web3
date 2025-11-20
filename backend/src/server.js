@@ -11,6 +11,7 @@ const oracleRoutes = require('./routes/oracle');
 const waitlistRoutes = require('./routes/waitlist');
 const midatoPayRoutes = require('./routes/midatopay');
 const walletRoutes = require('./routes/wallet');
+const balanceRoutes = require('./routes/balance');
 const statsRoutes = require('./routes/stats');
 const faqRoutes = require('./routes/faq');
 const chipiPayRoutes = require('./routes/chipipay');
@@ -83,6 +84,7 @@ app.use('/api/faq', faqRoutes);
 app.use('/api/chipipay', chipiPayRoutes);
 app.use('/api/cavos', cavosRoutes);
 app.use('/api/webhooks', webhookRoutes);
+app.use('/api/balance', balanceRoutes);
 
 // Middleware de manejo de errores
 app.use(errorHandler);
