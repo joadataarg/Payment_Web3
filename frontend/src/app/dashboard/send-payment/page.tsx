@@ -11,49 +11,46 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { useTransfer } from '@/hooks/useChipiPayTransferSDK'
-import { useChipiPayWalletStorage } from '@/hooks/useChipiPayWalletStorage'
-import { useChipiPayBalance } from '@/hooks/useChipiPayBalance'
-import { useChipiPay } from '@/components/providers/ChipiPayProvider'
+import { useCavosTransfer } from '@/hooks/useCavosTransfer'
+import { useCavosWallet } from '@/hooks/useCavosWallet'
+import { CavosBalance } from '@/components/CavosBalance'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { useAuth } from '@/store/auth'
 import { useUserProfile } from '@/hooks/useUserProfile'
 import { normalizeStarknetAddress } from '@/utils/starknetAddress'
 
 /**
- * Página para enviar pagos USDC manualmente usando ChipiPay
+ * Página para enviar pagos USDT manualmente usando Cavos
  * 
  * Flujo:
  * 1. Usuario ingresa dirección del destinatario
- * 2. Usuario ingresa monto (ARS o USDC)
+ * 2. Usuario ingresa monto (ARS o USDT)
  * 3. Usuario ingresa PIN
- * 4. Se ejecuta transferencia usando useTransfer
+ * 4. Se ejecuta transferencia usando useCavosTransfer
  * 5. Se muestra confirmación con TX hash
  */
 export default function SendPaymentPage() {
   const router = useRouter()
   const { t } = useLanguage()
-  const { wallet: chipiPayWallet, hasWallet, isLoading: walletStorageLoading } = useChipiPayWalletStorage()
+  const { wallet: cavosWallet, address: cavosAddress, isConnected: isCavosConnected, isLoading: walletLoading } = useCavosWallet()
   const { user: authUser } = useAuth()
   const { user: profileUser, isLoading: profileLoading } = useUserProfile()
-  const { tokenAddresses } = useChipiPay()
+  
   // Usar walletAddress del perfil completo (más confiable) y normalizarla
-  const rawWalletAddress = chipiPayWallet?.publicKey || profileUser?.walletAddress || authUser?.walletAddress
+  const rawWalletAddress = cavosAddress || profileUser?.walletAddress || authUser?.walletAddress
   const walletAddress = rawWalletAddress ? normalizeStarknetAddress(rawWalletAddress) || rawWalletAddress : undefined
   
-  const { transfer, transferData, isLoading: isTransferring, error: transferError } = useTransfer()
-  const { balance: chipiPayUSDCBalance, isLoading: balanceLoading, refetch: refetchUSDCBalance } = useChipiPayBalance(
-    walletAddress,
-    'USDC'
-  )
+  const { transfer, isLoading: isTransferring, error: transferError, transactionHash } = useCavosTransfer()
   
   // Verificar si hay wallet en localStorage o en la BD
-  const hasChipiPayWallet = hasWallet || !!chipiPayWallet || !!profileUser?.walletAddress || !!authUser?.walletAddress
+  const hasCavosWallet = isCavosConnected || !!cavosWallet || !!profileUser?.walletAddress || !!authUser?.walletAddress
   const user = profileUser || authUser
+
+  const USDT_CONTRACT = process.env.NEXT_PUBLIC_STARKNET_USDT_ADDRESS || '0x068f5c6a61780768455de69077e07e89787839bf8166decfbf92b645209c0fb8'
 
   const [recipientAddress, setRecipientAddress] = useState('')
   const [amount, setAmount] = useState('')
-  const [amountType, setAmountType] = useState<'ARS' | 'USDC'>('ARS')
+  const [amountType, setAmountType] = useState<'ARS' | 'USDT'>('ARS')
   const [pin, setPin] = useState('')
   const [showPin, setShowPin] = useState(false)
   const [txHash, setTxHash] = useState<string | null>(null)
@@ -93,15 +90,9 @@ export default function SendPaymentPage() {
       const amountNum = parseFloat(amount)
       if (isNaN(amountNum) || amountNum <= 0) {
         newErrors.amount = 'El monto debe ser un número mayor a 0'
-      } else if (amountType === 'USDC' && chipiPayUSDCBalance) {
-        const balanceNum = parseFloat(chipiPayUSDCBalance)
-        if (amountNum > balanceNum) {
-          newErrors.amount = `No tienes suficiente balance. Disponible: ${balanceNum.toFixed(6)} USDC`
-        }
-      } else if (amountType === 'USDC' && (!chipiPayUSDCBalance || parseFloat(chipiPayUSDCBalance || '0') === 0)) {
-        // Si el balance es 0 o no se puede obtener, mostrar advertencia pero permitir intentar
-        // El SDK manejará el error si realmente no hay fondos
-        console.warn('⚠️ Balance no disponible o es 0. Se intentará enviar de todas formas.')
+      } else if (amountType === 'USDT') {
+        // Validación de balance se manejará en el backend o durante la transferencia
+        // Por ahora, solo validamos que el monto sea positivo
       }
     }
 
@@ -123,31 +114,15 @@ export default function SendPaymentPage() {
       return
     }
 
-    // Obtener wallet de localStorage o usar walletAddress de la BD
-    const walletToUse = chipiPayWallet || (user?.walletAddress ? {
-      publicKey: user.walletAddress,
-      encryptedPrivateKey: '' // Necesitaremos obtenerlo de otra forma si está en BD
-    } : null)
-
-    if (!walletToUse || !walletToUse.publicKey) {
-      toast.error('No se pudo obtener la información de tu wallet ChipiPay')
-      return
-    }
-
-    // Si no tenemos encryptedPrivateKey, necesitamos obtenerlo
-    if (!walletToUse.encryptedPrivateKey && chipiPayWallet?.encryptedPrivateKey) {
-      walletToUse.encryptedPrivateKey = chipiPayWallet.encryptedPrivateKey
-    }
-
-    if (!walletToUse.encryptedPrivateKey) {
-      toast.error('No se encontró la clave privada encriptada. Por favor, recrea tu wallet.')
+    if (!isCavosConnected || !cavosAddress) {
+      toast.error('No se pudo obtener la información de tu wallet Cavos. Por favor, conecta tu wallet.')
       router.push('/dashboard/billetera')
       return
     }
 
     try {
-      // Obtener tasa de cambio ARS/USDC del backend o usar tasa por defecto
-      let arsToUsdcRate = 1000 // 1000 ARS = 1 USDC (tasa por defecto)
+      // Obtener tasa de cambio ARS/USDT del backend o usar tasa por defecto
+      let arsToUsdtRate = 1000 // 1000 ARS = 1 USDT (tasa por defecto)
       
       // Intentar obtener tasa real del backend
       try {
@@ -156,65 +131,51 @@ export default function SendPaymentPage() {
         if (priceResponse.ok) {
           const priceData = await priceResponse.json()
           if (priceData.price) {
-            // El precio viene como USDT/ARS, necesitamos invertirlo para ARS/USDC
-            // Asumimos que USDC ≈ USDT para la conversión
-            arsToUsdcRate = 1 / parseFloat(priceData.price)
+            // El precio viene como USDT/ARS, necesitamos invertirlo para ARS/USDT
+            arsToUsdtRate = 1 / parseFloat(priceData.price)
           }
         }
       } catch (priceError) {
         console.warn('No se pudo obtener tasa de cambio, usando tasa por defecto:', priceError)
       }
 
-      // Convertir monto a USDC si está en ARS
-      let amountInUSDC = parseFloat(amount)
+      // Convertir monto a USDT si está en ARS
+      let amountInUSDT = parseFloat(amount)
       if (amountType === 'ARS') {
-        amountInUSDC = amountInUSDC / arsToUsdcRate
-        toast(`💡 Conversión: ${parseFloat(amount).toFixed(2)} ARS = ${amountInUSDC.toFixed(6)} USDC (1 USDC ≈ ${arsToUsdcRate.toFixed(0)} ARS)`, { duration: 4000 })
+        amountInUSDT = amountInUSDT / arsToUsdtRate
+        toast(`💡 Conversión: ${parseFloat(amount).toFixed(2)} ARS = ${amountInUSDT.toFixed(6)} USDT (1 USDT ≈ ${arsToUsdtRate.toFixed(0)} ARS)`, { duration: 4000 })
       }
 
-      // Obtener dirección del contrato USDC (tiene valor por defecto de ChipiPay)
-      const usdcContractAddress = tokenAddresses.USDC
-      if (!usdcContractAddress || usdcContractAddress === '0x0000000000000000000000000000000000000000') {
-        toast.error('⚠️ La dirección del contrato USDC no está configurada. Agrega NEXT_PUBLIC_USDC_CONTRACT_ADDRESS a .env.local')
+      if (!USDT_CONTRACT || USDT_CONTRACT === '0x0000000000000000000000000000000000000000') {
+        toast.error('⚠️ La dirección del contrato USDT no está configurada. Agrega NEXT_PUBLIC_STARKNET_USDT_ADDRESS a .env.local')
         return
       }
       
-      console.log('🔍 Usando dirección de contrato USDC:', usdcContractAddress)
+      console.log('🔍 Usando dirección de contrato USDT:', USDT_CONTRACT)
 
-      // Convertir a formato con decimals (USDC tiene 6 decimals)
+      // Convertir a formato con decimals (USDT tiene 6 decimals)
       const decimals = 6
       // El amount debe estar en la unidad más pequeña (sin decimals)
-      const amountInSmallestUnit = Math.floor(amountInUSDC * Math.pow(10, decimals))
+      const amountInSmallestUnit = Math.floor(amountInUSDT * Math.pow(10, decimals)).toString()
 
-      if (amountInSmallestUnit <= 0) {
+      if (parseInt(amountInSmallestUnit) <= 0) {
         toast.error('El monto es demasiado pequeño después de la conversión')
         return
       }
 
-      // Ejecutar transferencia usando ChipiPay SDK
-      const result = await transfer({
-        encryptKey: pin,
-        wallet: {
-          publicKey: walletToUse.publicKey,
-          encryptedPrivateKey: walletToUse.encryptedPrivateKey
-        },
-        contractAddress: usdcContractAddress, // Dirección del contrato USDC
-        recipient: normalizeAddress(recipientAddress.trim()), // Normalizar dirección del destinatario
-        amount: amountInSmallestUnit, // Enviar como number (unidades más pequeñas)
-        decimals: decimals
-      })
+      // Ejecutar transferencia usando Cavos
+      const result = await transfer(
+        USDT_CONTRACT, // Dirección del contrato USDT
+        normalizeAddress(recipientAddress.trim()), // Normalizar dirección del destinatario
+        amountInSmallestUnit // Enviar como string (unidades más pequeñas)
+      )
 
-      // transferData contiene directamente el hash de la transacción (string)
-      const txHashValue = transferData || (typeof result === 'string' ? result : (result as any)?.txHash || (result as any)?.transactionHash || (result as any)?.hash)
+      // transactionHash contiene directamente el hash de la transacción
+      const txHashValue = result.transactionHash || transactionHash
       
-      if (txHashValue) {
+      if (result.success && txHashValue) {
         setTxHash(txHashValue)
         toast.success('✅ Pago enviado exitosamente!')
-        
-        // Actualizar balance después de unos segundos (dar tiempo a que se procese la transacción)
-        setTimeout(() => {
-          refetchUSDCBalance()
-        }, 3000)
         
         // Limpiar formulario
         setRecipientAddress('')
@@ -227,7 +188,7 @@ export default function SendPaymentPage() {
           const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
           // Obtener token de autenticación desde localStorage o Clerk
           const authToken = localStorage.getItem('token') || ''
-          await fetch(`${apiUrl}/api/chipipay/transactions`, {
+          await fetch(`${apiUrl}/api/cavos/transactions`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -235,13 +196,13 @@ export default function SendPaymentPage() {
             },
             body: JSON.stringify({
               sessionId: `send-${Date.now()}`,
-              amountARS: amountType === 'ARS' ? parseFloat(amount) : parseFloat(amount) * arsToUsdcRate,
-              amountUSDC: amountInUSDC,
+              amountARS: amountType === 'ARS' ? parseFloat(amount) : parseFloat(amount) * arsToUsdtRate,
+              amountUSDC: amountInUSDT, // Kept for DB compatibility
               txHash: txHashValue,
-              fromAddress: walletToUse.publicKey,
+              fromAddress: cavosAddress,
               toAddress: recipientAddress.trim(),
               status: 'completed',
-              userId: user?.id || walletToUse.publicKey
+              userId: user?.id || cavosAddress
             })
           })
         } catch (error) {
@@ -249,9 +210,8 @@ export default function SendPaymentPage() {
           // No mostrar error al usuario, la transacción ya se ejecutó
         }
       } else {
-        toast.error('No se recibió hash de transacción. Verifica la consola para más detalles.')
+        toast.error(result.error || 'No se recibió hash de transacción. Verifica la consola para más detalles.')
         console.error('Resultado de transfer:', result)
-        console.error('transferData:', transferData)
       }
     } catch (error: any) {
       console.error('Error enviando pago:', error)
@@ -268,24 +228,21 @@ export default function SendPaymentPage() {
 
   // Debug: Log información de la wallet
   useEffect(() => {
-    if (!walletStorageLoading && !balanceLoading && user) {
+    if (!walletLoading && user) {
       console.log('🔍 Send Payment - Estado de wallet:', {
-        hasChipiPayWallet,
-        fromStorage: hasWallet,
-        fromBD: !!profileUser?.walletAddress || !!authUser?.walletAddress,
+        hasCavosWallet,
+        isCavosConnected,
         walletAddress: walletAddress,
-        chipiPayWallet: chipiPayWallet?.publicKey,
+        cavosWallet: cavosWallet?.address,
         profileUserWallet: profileUser?.walletAddress,
         authUserWallet: authUser?.walletAddress,
-        balance: chipiPayUSDCBalance,
-        balanceLoading,
-        tokenAddressUSDC: tokenAddresses.USDC
+        usdtContract: USDT_CONTRACT
       })
     }
-  }, [hasChipiPayWallet, walletStorageLoading, balanceLoading, user, hasWallet, chipiPayWallet, walletAddress, chipiPayUSDCBalance, tokenAddresses.USDC, profileUser, authUser])
+  }, [hasCavosWallet, walletLoading, user, isCavosConnected, cavosWallet, walletAddress, USDT_CONTRACT, profileUser, authUser])
 
   // Mostrar loading mientras se carga la wallet
-  if (walletStorageLoading || balanceLoading || profileLoading || !user) {
+  if (walletLoading || profileLoading || !user) {
     return (
       <DashboardLayout pageTitle="Enviar Pago">
         <div className="flex items-center justify-center min-h-[400px]">
@@ -301,9 +258,9 @@ export default function SendPaymentPage() {
   }
 
   // Si no hay wallet después de cargar, mostrar mensaje y opción para crear
-  if (!hasChipiPayWallet) {
+  if (!hasCavosWallet) {
     return (
-      <DashboardLayout pageTitle="Enviar Pago USDC">
+      <DashboardLayout pageTitle="Enviar Pago USDT">
         <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <Link href="/dashboard">
             <Button
@@ -331,7 +288,7 @@ export default function SendPaymentPage() {
                 fontWeight: 700
               }}>
                 <AlertCircle className="w-6 h-6" style={{ color: '#ef4444' }} />
-                <span>Wallet ChipiPay Requerida</span>
+                <span>Wallet Cavos Requerida</span>
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -346,7 +303,7 @@ export default function SendPaymentPage() {
                   }}
                 >
                   <Wallet className="w-4 h-4 mr-2" />
-                  Ir a Crear Wallet ChipiPay
+                  Ir a Crear Wallet Cavos
                 </Button>
               </Link>
             </CardContent>
@@ -357,7 +314,7 @@ export default function SendPaymentPage() {
   }
 
   return (
-    <DashboardLayout pageTitle="Enviar Pago USDC">
+    <DashboardLayout pageTitle="Enviar Pago USDT">
       <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Botón volver */}
         <Link href="/dashboard">
@@ -392,7 +349,7 @@ export default function SendPaymentPage() {
                 fontWeight: 700
               }}>
                 <Send className="w-6 h-6" style={{ color: '#fe6c1c' }} />
-                <span>Enviar Pago USDC</span>
+                <span>Enviar Pago USDT</span>
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -406,16 +363,12 @@ export default function SendPaymentPage() {
                     <p className="text-sm mb-1" style={{ color: '#5d5d5d', fontFamily: 'Kufam, sans-serif' }}>
                       Balance disponible
                     </p>
-                    <p className="text-2xl font-bold" style={{ color: '#1a1a1a', fontFamily: 'Kufam, sans-serif' }}>
-                      {balanceLoading ? (
-                        <span className="flex items-center space-x-2">
-                          <div className="w-4 h-4 border-2 border-green-600 border-t-transparent rounded-full animate-spin"></div>
-                          <span>Cargando...</span>
-                        </span>
-                      ) : (
-                        `${parseFloat(chipiPayUSDCBalance || '0').toFixed(6)} USDC`
-                      )}
-                    </p>
+                    <div className="text-2xl font-bold" style={{ color: '#1a1a1a', fontFamily: 'Kufam, sans-serif' }}>
+                      <CavosBalance 
+                        token="USDT" 
+                        tokenAddress={USDT_CONTRACT}
+                      />
+                    </div>
                   </div>
                   <Wallet className="w-8 h-8" style={{ color: '#10b981' }} />
                 </div>
@@ -450,7 +403,7 @@ export default function SendPaymentPage() {
                       </Button>
                     </div>
                     <p className="text-xs" style={{ color: '#5d5d5d' }}>
-                      Pasa esta dirección a ChipiPay para recibir USDC
+                      Pasa esta dirección para recibir USDT
                     </p>
                   </div>
                 </div>
@@ -529,7 +482,7 @@ export default function SendPaymentPage() {
                         }}
                       >
                         <option value="ARS">ARS</option>
-                        <option value="USDC">USDC</option>
+                        <option value="USDT">USDT</option>
                       </select>
                     </div>
                     {errors.amount && (

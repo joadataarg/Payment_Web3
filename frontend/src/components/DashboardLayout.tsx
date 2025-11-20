@@ -374,7 +374,7 @@ export default function DashboardLayout({ children, pageTitle }: DashboardLayout
   // Si hay callback de OAuth, permitir acceso temporalmente
   // El hook useUserProfile intentará obtener el token en segundo plano
   // NO redirigir automáticamente - permitir que el usuario permanezca en el dashboard
-  // El usuario puede probar ChipiPay mientras el sistema intenta obtener el token
+  // El usuario puede usar Cavos mientras el sistema intenta obtener el token
   useEffect(() => {
     if (!isOAuthCallback || !clerkAuthHook.isLoaded) return
 
@@ -392,7 +392,7 @@ export default function DashboardLayout({ children, pageTitle }: DashboardLayout
 
     // Si hay cookies, permitir acceso indefinidamente
     // useUserProfile seguirá intentando obtener el token en segundo plano
-    // No redirigir automáticamente - el usuario puede probar ChipiPay
+    // No redirigir automáticamente - el usuario puede usar Cavos
     if (hasClerkCookies) {
       console.log('✅ Cookies de Clerk detectadas - permitiendo acceso al dashboard')
       console.log('ℹ️ useUserProfile intentará obtener el token en segundo plano')
@@ -466,7 +466,7 @@ export default function DashboardLayout({ children, pageTitle }: DashboardLayout
         if (isOAuthCallback && currentHasClerkCookies && !currentIsSignedIn) {
           console.log('⏳ OAuth callback con cookies detectado - permitiendo acceso continuo al dashboard')
           console.log('ℹ️ useUserProfile seguirá intentando obtener el token en segundo plano')
-          // NO redirigir - permitir que el usuario pruebe ChipiPay
+          // NO redirigir - permitir que el usuario use Cavos
           return
         }
         

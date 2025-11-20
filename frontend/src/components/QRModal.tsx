@@ -55,7 +55,7 @@ export function QRModal({
     return amountARS / 1000;
   };
 
-  // Determinar el tipo de crypto (USDC para ChipiPay, USDT para sistema actual)
+  // Determinar el tipo de crypto (USDT para Cavos, USDT para sistema actual)
   const cryptoType = qrData.paymentData.targetCrypto || 'USDT';
   
   // Obtener el monto en crypto (usar el del backend si existe y es válido, sino calcularlo)

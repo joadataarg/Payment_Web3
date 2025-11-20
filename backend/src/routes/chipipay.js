@@ -1,3 +1,8 @@
+/**
+ * @deprecated This route is deprecated. Use /api/cavos instead.
+ * ChipiPay routes are kept for backward compatibility only.
+ * All new implementations should use Cavos routes.
+ */
 const express = require('express')
 const router = express.Router()
 const { body, validationResult } = require('express-validator')

@@ -3,36 +3,36 @@
 import { useState, useCallback } from 'react'
 
 /**
- * Hook para conversión ARS → USDC usando ChipiPay
+ * Hook para conversión ARS → USDT usando Cavos
  * 
- * Usa una tasa fija de conversión: $1,000 ARS = 1 USDC
+ * Usa una tasa fija de conversión: $1,000 ARS = 1 USDT
  * Esta es una implementación frontend para pruebas.
  * 
  * @returns Función de conversión y estado de carga
  */
-export function useChipiPayConversion() {
+export function useCavosConversion() {
   const [isConverting, setIsConverting] = useState(false)
 
   /**
-   * Convertir ARS a USDC
+   * Convertir ARS a USDT
    * 
    * @param amountARS - Cantidad en pesos argentinos
-   * @returns Cantidad en USDC
+   * @returns Cantidad en USDT
    */
-  const convertARSToUSDC = useCallback(async (amountARS: number): Promise<number> => {
+  const convertARSToUSDT = useCallback(async (amountARS: number): Promise<number> => {
     setIsConverting(true)
     
     try {
-      // Tasa fija: $1,000 ARS = 1 USDC
+      // Tasa fija: $1,000 ARS = 1 USDT
       const exchangeRate = 1000
-      const usdcAmount = amountARS / exchangeRate
+      const usdtAmount = amountARS / exchangeRate
       
       // Simular delay de red (opcional, para pruebas)
       await new Promise(resolve => setTimeout(resolve, 500))
       
-      return usdcAmount
+      return usdtAmount
     } catch (error) {
-      console.error('Error en conversión ARS → USDC:', error)
+      console.error('Error en conversión ARS → USDT:', error)
       throw error
     } finally {
       setIsConverting(false)
@@ -40,25 +40,25 @@ export function useChipiPayConversion() {
   }, [])
 
   /**
-   * Convertir USDC a ARS (inverso)
+   * Convertir USDT a ARS (inverso)
    * 
-   * @param amountUSDC - Cantidad en USDC
+   * @param amountUSDT - Cantidad en USDT
    * @returns Cantidad en ARS
    */
-  const convertUSDCToARS = useCallback(async (amountUSDC: number): Promise<number> => {
+  const convertUSDTToARS = useCallback(async (amountUSDT: number): Promise<number> => {
     setIsConverting(true)
     
     try {
-      // Tasa fija: 1 USDC = $1,000 ARS
+      // Tasa fija: 1 USDT = $1,000 ARS
       const exchangeRate = 1000
-      const arsAmount = amountUSDC * exchangeRate
+      const arsAmount = amountUSDT * exchangeRate
       
       // Simular delay de red
       await new Promise(resolve => setTimeout(resolve, 500))
       
       return arsAmount
     } catch (error) {
-      console.error('Error en conversión USDC → ARS:', error)
+      console.error('Error en conversión USDT → ARS:', error)
       throw error
     } finally {
       setIsConverting(false)
@@ -66,10 +66,10 @@ export function useChipiPayConversion() {
   }, [])
 
   return {
-    convertARSToUSDC,
-    convertUSDCToARS,
+    convertARSToUSDT,
+    convertUSDTToARS,
     isConverting,
-    exchangeRate: 1000 // Tasa fija: $1,000 ARS = 1 USDC
+    exchangeRate: 1000 // Tasa fija: $1,000 ARS = 1 USDT
   }
 }
 
