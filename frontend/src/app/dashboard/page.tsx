@@ -337,7 +337,16 @@ export default function DashboardPage() {
                   </div>
                   <div className="text-left">
                     <p className="text-sm" style={{ color: '#8B8B8B', fontFamily: 'Kufam, sans-serif', fontWeight: 400 }}>{t.dashboard.argentinePesos}</p>
-                    <p className="font-bold text-lg" style={{ color: '#2C2C2C', fontFamily: 'Kufam, sans-serif', fontWeight: 500 }}>--</p>
+                    <p className="font-bold text-lg" style={{ color: '#2C2C2C', fontFamily: 'Kufam, sans-serif', fontWeight: 500 }}>
+                      {offchainBalanceLoading
+                        ? '...'
+                        : offchainBalanceError
+                        ? '--'
+                        : `$ ${offchainBalance.toLocaleString('es-AR', {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2
+                          })}`}
+                    </p>
                   </div>
                 </div>
                 
@@ -391,7 +400,16 @@ export default function DashboardPage() {
                     </div>
                     <div className="text-left">
                       <p className="text-sm" style={{ color: '#8B8B8B', fontFamily: 'Kufam, sans-serif', fontWeight: 400 }}>{t.dashboard.argentinePesos}</p>
-                      <p className="font-bold text-lg" style={{ color: '#2C2C2C', fontFamily: 'Kufam, sans-serif', fontWeight: 500 }}>--</p>
+                      <p className="font-bold text-lg" style={{ color: '#2C2C2C', fontFamily: 'Kufam, sans-serif', fontWeight: 500 }}>
+                        {offchainBalanceLoading
+                          ? '...'
+                          : offchainBalanceError
+                          ? '--'
+                          : `$ ${offchainBalance.toLocaleString('es-AR', {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2
+                            })}`}
+                      </p>
                     </div>
                   </div>
                   
