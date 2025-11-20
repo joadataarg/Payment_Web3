@@ -14,6 +14,7 @@ const walletRoutes = require('./routes/wallet');
 const statsRoutes = require('./routes/stats');
 const faqRoutes = require('./routes/faq');
 const chipiPayRoutes = require('./routes/chipipay');
+const cavosRoutes = require('./routes/cavos');
 const webhookRoutes = require('./routes/webhooks');
 const { errorHandler } = require('./middleware/errorHandler');
 const { initializeWebSocket } = require('./services/websocket');
@@ -80,6 +81,7 @@ app.use('/api/wallet', walletRoutes);
 app.use('/api/stats', statsRoutes);
 app.use('/api/faq', faqRoutes);
 app.use('/api/chipipay', chipiPayRoutes);
+app.use('/api/cavos', cavosRoutes);
 app.use('/api/webhooks', webhookRoutes);
 
 // Middleware de manejo de errores

@@ -9,7 +9,7 @@ const midatoPayService = new MidatoPayService();
 // Generar QR de pago
 router.post('/generate-qr', authenticateToken, async (req, res) => {
   try {
-    const { amountARS, targetCrypto, concept } = req.body;
+    const { amountARS, targetCrypto, concept, walletAddress } = req.body;
     const merchantId = req.user.id; // Asumiendo que auth middleware agrega user info
 
     if (!amountARS || !targetCrypto) {
@@ -34,7 +34,36 @@ router.post('/generate-qr', authenticateToken, async (req, res) => {
       });
     }
 
-    const result = await midatoPayService.generatePaymentQR(merchantId, amountARS, targetCrypto, concept);
+    // Si se proporciona walletAddress en el request, usarlo y guardarlo en DB si no existe
+    if (walletAddress) {
+      try {
+        const { PrismaClient } = require('@prisma/client');
+        const prisma = new PrismaClient();
+        
+        // Verificar si el usuario tiene wallet en DB
+        const user = await prisma.user.findUnique({
+          where: { id: merchantId },
+          select: { walletAddress: true }
+        });
+        
+        // Si no tiene wallet en DB, guardarla
+        if (!user?.walletAddress) {
+          console.log('💾 Guardando wallet desde request a DB:', walletAddress);
+          await prisma.user.update({
+            where: { id: merchantId },
+            data: {
+              walletAddress: walletAddress,
+              walletCreatedAt: new Date()
+            }
+          });
+          console.log('✅ Wallet guardada en DB');
+        }
+      } catch (saveError) {
+        console.warn('⚠️ No se pudo guardar wallet en DB, continuando con wallet del request:', saveError.message);
+      }
+    }
+
+    const result = await midatoPayService.generatePaymentQR(merchantId, amountARS, targetCrypto, concept, walletAddress);
     
     res.json(result);
   } catch (error) {

@@ -4,22 +4,22 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '@/store/auth'
 
 /**
- * Hook para almacenar y recuperar wallet de ChipiPay de forma segura
+ * Hook para almacenar y recuperar wallet de Cavos de forma segura
  * 
- * Almacena el encryptedPrivateKey en localStorage encriptado con una clave derivada del userId
+ * Almacena el privateKey en localStorage (en producción, considerar encriptar adicionalmente)
  */
-export interface ChipiPayWalletData {
-  publicKey: string
-  encryptedPrivateKey: string
+export interface CavosWalletData {
+  address: string
+  privateKey: string
   txHash?: string
   createdAt: string
 }
 
-const STORAGE_KEY_PREFIX = 'chipipay_wallet_'
+const STORAGE_KEY_PREFIX = 'cavos_wallet_'
 
-export function useChipiPayWalletStorage() {
+export function useCavosWalletStorage() {
   const { user } = useAuth()
-  const [wallet, setWallet] = useState<ChipiPayWalletData | null>(null)
+  const [wallet, setWallet] = useState<CavosWalletData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
   // Obtener clave de almacenamiento basada en userId
@@ -29,7 +29,7 @@ export function useChipiPayWalletStorage() {
   }
 
   // Guardar wallet
-  const saveWallet = (walletData: ChipiPayWalletData) => {
+  const saveWallet = (walletData: CavosWalletData) => {
     try {
       const storageKey = getStorageKey()
       if (!storageKey) {
@@ -40,7 +40,7 @@ export function useChipiPayWalletStorage() {
       localStorage.setItem(storageKey, JSON.stringify(walletData))
       setWallet(walletData)
       
-      console.log('✅ Wallet ChipiPay guardada')
+      console.log('✅ Wallet Cavos guardada')
       return true
     } catch (error) {
       console.error('Error guardando wallet:', error)
@@ -49,7 +49,7 @@ export function useChipiPayWalletStorage() {
   }
 
   // Cargar wallet
-  const loadWallet = (): ChipiPayWalletData | null => {
+  const loadWallet = (): CavosWalletData | null => {
     try {
       const storageKey = getStorageKey()
       if (!storageKey) return null
@@ -57,7 +57,7 @@ export function useChipiPayWalletStorage() {
       const stored = localStorage.getItem(storageKey)
       if (!stored) return null
 
-      const walletData = JSON.parse(stored) as ChipiPayWalletData
+      const walletData = JSON.parse(stored) as CavosWalletData
       setWallet(walletData)
       return walletData
     } catch (error) {

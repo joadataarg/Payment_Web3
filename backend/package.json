@@ -12,8 +12,6 @@
     "db:reset": "npx prisma migrate reset"
   },
   "dependencies": {
-    "@chipi-pay/chipi-sdk": "^3.2.2",
-    "@chipi-stack/backend": "^11.11.0",
     "@clerk/backend": "^2.22.0",
     "@clerk/nextjs": "^6.35.1",
     "@prisma/client": "^5.7.1",

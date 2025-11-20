@@ -21,11 +21,10 @@ import { useLanguage } from '@/contexts/LanguageContext'
 import { midatoPayAPI } from '@/lib/midatopay-api'
 import { QRModal } from '@/components/QRModal'
 import { useOracleConversion } from '@/hooks/useOracleConversion'
-import { useChipiPayConversion } from '@/hooks/useChipiPayConversion'
-import { useChipiPayBalance } from '@/hooks/useChipiPayBalance'
-import { useChipiPayTransfer } from '@/hooks/useChipiPayTransfer'
-import { useAccount } from '@starknet-react/core'
-import { ChipiPayWalletConnect } from '@/components/ChipiPayWalletConnect'
+import { useCavosConversion } from '@/hooks/useCavosConversion'
+import { useCavosWallet } from '@/hooks/useCavosWallet'
+import { CavosBalance } from '@/components/CavosBalance'
+import QRCode from 'qrcode'
 
 export default function CreatePaymentPage() {
   const { user, isAuthenticated } = useAuth()
@@ -57,17 +56,15 @@ export default function CreatePaymentPage() {
 
   const watchedAmount = watch('amount')
   
-  // Toggle para elegir entre sistema actual (USDT) y ChipiPay (USDC)
-  const [useChipiPay, setUseChipiPay] = useState(false)
+  // Toggle para elegir entre sistema actual (USDT) y Cavos (USDT)
+  const [useCavos, setUseCavos] = useState(false)
   
   // Hooks del sistema actual (USDT)
   const { convertARSToCrypto, loading: oracleLoading } = useOracleConversion()
   
-  // Hooks de ChipiPay (USDC)
-  const { account } = useAccount()
-  const { convertARSToUSDC, isConverting: chipiPayConverting } = useChipiPayConversion()
-  const { balance: chipiPayBalance, isLoading: chipiPayBalanceLoading } = useChipiPayBalance(account?.address, 'USDC')
-  const { transfer: chipiPayTransfer, isTransferring: chipiPayTransferring } = useChipiPayTransfer('USDC')
+  // Hooks de Cavos (USDT)
+  const { address: cavosAddress, isConnected: isCavosConnected, wallet: cavosWallet } = useCavosWallet()
+  const { convertARSToUSDT, isConverting: cavosConverting } = useCavosConversion()
   
   const [cryptoAmount, setCryptoAmount] = useState<number | null>(null)
   const [percentage, setPercentage] = useState<number>(100) // Porcentaje predeterminado 100%
@@ -90,10 +87,10 @@ export default function CreatePaymentPage() {
 
     const timeoutId = setTimeout(async () => {
       try {
-        if (useChipiPay) {
-          // Usar ChipiPay para conversión ARS → USDC
-          const usdcAmount = await convertARSToUSDC(watchedAmount)
-          setCryptoAmount(usdcAmount)
+        if (useCavos) {
+          // Usar Cavos para conversión ARS → USDT
+          const usdtAmount = await convertARSToUSDT(watchedAmount)
+          setCryptoAmount(usdtAmount)
         } else {
           // Usar sistema actual para conversión ARS → USDT
           const result = await convertARSToCrypto(watchedAmount, 'USDT')
@@ -110,7 +107,7 @@ export default function CreatePaymentPage() {
     }, 1000) // Debounce de 1 segundo
 
     return () => clearTimeout(timeoutId)
-  }, [watchedAmount, convertARSToCrypto, convertARSToUSDC, useChipiPay])
+  }, [watchedAmount, convertARSToCrypto, convertARSToUSDT, useCavos])
 
 
   const onSubmit = async (data: CreatePaymentForm) => {
@@ -121,39 +118,96 @@ export default function CreatePaymentPage() {
 
     setIsCreating(true)
     try {
-      if (useChipiPay) {
-        // Usar ChipiPay para procesar pago ARS → USDC
+      if (useCavos) {
+        // Usar Cavos para procesar pago ARS → USDT
         if (!adjustedCryptoAmount || adjustedCryptoAmount <= 0) {
-          toast.error('Monto en USDC inválido')
+          toast.error('Monto en USDT inválido')
           setIsCreating(false)
           return
         }
 
-        // Generar QR para ChipiPay (no requiere wallet conectada para generar QR)
-        // El QR contiene la información del pago ARS → USDC
-        const chipiPayData = {
+        // Generar QR para Cavos (no requiere wallet conectada para generar QR)
+        // El QR contiene la información del pago ARS → USDT
+        const paymentData = {
           success: true,
           paymentData: {
             amountARS: data.amount,
-            targetCrypto: 'USDC', // ChipiPay usa USDC
+            targetCrypto: 'USDT', // Cavos usa USDT
             cryptoAmount: adjustedCryptoAmount,
-            sessionId: `chipipay-${Date.now()}`,
+            sessionId: `cavos-${Date.now()}`,
             timestamp: new Date().toISOString(),
-            exchangeRate: '1000 ARS = 1 USDC',
-            merchantName: 'MidatoPay - ChipiPay',
-            walletAddress: account?.address || null // Opcional: incluir wallet si está conectada
-          },
-          qrCodeImage: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2ZmZiIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiMwMDAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5DaGlwaVBheTx0c3BhbiBkeT0iLjhlbSI+VVNEQzwvdHNwYW4+PC90ZXh0Pjwvc3ZnPg=='
+            exchangeRate: '1000 ARS = 1 USDT',
+            merchantName: 'MidatoPay - Cavos',
+            walletAddress: cavosAddress || null // Opcional: incluir wallet si está conectada
+          }
         }
 
-        setQrData(chipiPayData)
+        // Generar QR code con los datos JSON
+        const qrDataString = JSON.stringify(paymentData)
+        const qrCodeImage = await QRCode.toDataURL(qrDataString, {
+          width: 300,
+          margin: 2,
+          color: {
+            dark: '#000000',
+            light: '#FFFFFF'
+          }
+        })
+
+        const cavosData = {
+          ...paymentData,
+          qrCodeImage
+        }
+
+        setQrData(cavosData)
         setShowQRModal(true)
-        toast.success(`QR ChipiPay generado: ${adjustedCryptoAmount.toFixed(6)} USDC`)
+        toast.success(`QR Cavos generado: ${adjustedCryptoAmount.toFixed(6)} USDT`)
       } else {
         // Usar sistema actual para generar QR
+        // Asegurarse de que la wallet esté guardada en DB antes de generar QR
+        let walletToUse: string | undefined = cavosAddress || undefined
+        
+        // Si tenemos wallet en localStorage, intentar guardarla en DB primero
+        if (walletToUse && cavosWallet) {
+          try {
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
+            // Obtener token de autenticación
+            let authToken: string | null = null
+            try {
+              const authStorage = localStorage.getItem('auth-storage')
+              if (authStorage) {
+                const parsed = JSON.parse(authStorage)
+                authToken = parsed.state?.token || null
+              }
+            } catch (e) {
+              // Ignorar error de parsing
+            }
+            
+            // Intentar guardar wallet si no está en DB
+            await fetch(`${apiUrl}/api/cavos/save-wallet`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                ...(authToken && { 'Authorization': `Bearer ${authToken}` })
+              },
+              body: JSON.stringify({
+                walletAddress: walletToUse,
+                publicKey: walletToUse,
+                privateKey: cavosWallet.privateKey || '', // Enviar clave privada si está disponible
+                txHash: cavosWallet.txHash || ''
+              })
+            }).catch(() => {
+              // Si falla, continuar de todas formas con el wallet del request
+              console.warn('No se pudo guardar wallet, usando wallet del request')
+            })
+          } catch (saveError) {
+            console.warn('Error guardando wallet antes de generar QR:', saveError)
+          }
+        }
+        
         const result = await midatoPayAPI.generatePaymentQR({
           amountARS: data.amount,
-          targetCrypto: 'USDT'
+          targetCrypto: 'USDT',
+          walletAddress: walletToUse // Pasar walletAddress en el request
         })
 
         if (result.success) {
@@ -234,7 +288,7 @@ export default function CreatePaymentPage() {
               <CardContent className="space-y-6">
                 <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
                   
-                  {/* Toggle ChipiPay */}
+                  {/* Toggle Cavos */}
                   <div className="flex items-center justify-between p-4 rounded-xl border" style={{ 
                     backgroundColor: 'rgba(247, 247, 246, 0.8)', 
                     borderColor: 'rgba(254,108,28,0.2)' 
@@ -243,57 +297,40 @@ export default function CreatePaymentPage() {
                       <span className="text-sm font-medium" style={{ color: '#1a1a1a' }}>
                         Sistema de Pago:
                       </span>
-                      <span className="text-xs" style={{ color: useChipiPay ? '#fe6c1c' : '#5d5d5d' }}>
-                        {useChipiPay ? 'ChipiPay (USDC)' : 'Sistema Actual (USDT)'}
+                      <span className="text-xs" style={{ color: useCavos ? '#fe6c1c' : '#5d5d5d' }}>
+                        {useCavos ? 'Cavos (USDT)' : 'Sistema Actual (USDT)'}
                       </span>
                     </div>
                     <button
                       type="button"
-                      onClick={() => setUseChipiPay(!useChipiPay)}
+                      onClick={() => setUseCavos(!useCavos)}
                       className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                        useChipiPay ? 'bg-orange-500' : 'bg-gray-300'
+                        useCavos ? 'bg-orange-500' : 'bg-gray-300'
                       }`}
                     >
                       <span
                         className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                          useChipiPay ? 'translate-x-6' : 'translate-x-1'
+                          useCavos ? 'translate-x-6' : 'translate-x-1'
                         }`}
                       />
                     </button>
                   </div>
                   
-                  {/* Balance USDC si usa ChipiPay y tiene wallet conectada */}
-                  {useChipiPay && account && (
+                  {/* Balance USDT si usa Cavos y tiene wallet conectada */}
+                  {useCavos && isCavosConnected && cavosAddress && (
                     <div className="p-3 rounded-lg" style={{ 
                       backgroundColor: 'rgba(254, 108, 28, 0.05)', 
                       border: '1px solid rgba(254,108,28,0.2)' 
                     }}>
                       <div className="flex items-center justify-between">
                         <span className="text-sm font-medium" style={{ color: '#1a1a1a' }}>
-                          Balance USDC:
+                          Balance USDT:
                         </span>
-                        <span className="text-sm font-bold" style={{ color: '#fe6c1c' }}>
-                          {chipiPayBalanceLoading ? '...' : `${chipiPayBalance} USDC`}
-                        </span>
+                        <CavosBalance 
+                          token="USDT" 
+                          tokenAddress={process.env.NEXT_PUBLIC_STARKNET_USDT_ADDRESS || '0x068f5c6a61780768455de69077e07e89787839bf8166decfbf92b645209c0fb8'}
+                        />
                       </div>
-                    </div>
-                  )}
-                  
-                  {/* Conectar Wallet si usa ChipiPay sin wallet */}
-                  {useChipiPay && !account && (
-                    <div className="p-4 rounded-lg" style={{ 
-                      backgroundColor: 'rgba(254, 108, 28, 0.05)', 
-                      border: '1px solid rgba(254,108,28,0.2)' 
-                    }}>
-                      <div className="flex items-center justify-between mb-2">
-                        <p className="text-sm font-medium" style={{ color: '#1a1a1a' }}>
-                          Conectar Wallet (Opcional)
-                        </p>
-                      </div>
-                      <p className="text-xs mb-3" style={{ color: '#5d5d5d' }}>
-                        Conecta una wallet para ver tu balance USDC. Puedes generar el QR sin wallet.
-                      </p>
-                      <ChipiPayWalletConnect />
                     </div>
                   )}
                   
@@ -381,10 +418,10 @@ export default function CreatePaymentPage() {
                               </defs>
                             </svg>
                           </div>
-                          <span className="font-medium">{useChipiPay ? 'USDC (USD Coin)' : 'USDT (Tether)'}</span>
+                          <span className="font-medium">USDT (Tether)</span>
                         </div>
-                        <span className="text-sm font-semibold" style={{ color: (oracleLoading || chipiPayConverting) ? '#8B8B8B' : '#009393' }}>
-                          {(oracleLoading || chipiPayConverting) ? '...' : adjustedCryptoAmount !== null ? `${adjustedCryptoAmount.toFixed(6)} ${useChipiPay ? 'USDC' : 'USDT'}` : '--'}
+                        <span className="text-sm font-semibold" style={{ color: (oracleLoading || cavosConverting) ? '#8B8B8B' : '#009393' }}>
+                          {(oracleLoading || cavosConverting) ? '...' : adjustedCryptoAmount !== null ? `${adjustedCryptoAmount.toFixed(6)} USDT` : '--'}
                         </span>
                       </div>
                     </div>

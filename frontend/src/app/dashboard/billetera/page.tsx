@@ -4,10 +4,9 @@ import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { useWalletManager } from '@/hooks/useWalletManager'
 import { WalletSetup } from '@/components/WalletSetup'
-import { ChipiPayCreateWallet } from '@/components/ChipiPayCreateWallet'
-import { useChipiPayWalletStorage } from '@/hooks/useChipiPayWalletStorage'
-import { useAccount } from '@starknet-react/core'
-import { useChipiPayBalance } from '@/hooks/useChipiPayBalance'
+import { CavosCreateWallet } from '@/components/CavosCreateWallet'
+import { useCavosWallet } from '@/hooks/useCavosWallet'
+import { CavosBalance } from '@/components/CavosBalance'
 import { useLanguage } from '@/contexts/LanguageContext'
 import DashboardLayout from '@/components/DashboardLayout'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -16,16 +15,7 @@ import { normalizeStarknetAddress } from '@/utils/starknetAddress'
 
 export default function BilleteraPage() {
   const { wallet, isConnected, isLoading: walletLoading } = useWalletManager()
-  const { account } = useAccount()
-  const { wallet: chipiPayWallet, hasWallet: hasChipiPayWallet } = useChipiPayWalletStorage()
-  // Normalizar dirección de wallet ChipiPay para mostrar
-  const normalizedChipiPayAddress = chipiPayWallet?.publicKey 
-    ? normalizeStarknetAddress(chipiPayWallet.publicKey) || chipiPayWallet.publicKey 
-    : null
-  const { balance: chipiPayUSDCBalance, isLoading: chipiPayBalanceLoading } = useChipiPayBalance(
-    account?.address || normalizedChipiPayAddress, 
-    'USDC'
-  )
+  const { wallet: cavosWallet, address: cavosAddress, isConnected: isCavosConnected } = useCavosWallet()
   const { t } = useLanguage()
   
   const [merchantWallet, setMerchantWallet] = useState({
@@ -58,9 +48,9 @@ export default function BilleteraPage() {
     }
   }, [isConnected, wallet?.address])
 
-  // Mostrar WalletSetup solo si no hay wallet de Starknet Y no hay wallet de ChipiPay
-  // Si hay wallet de ChipiPay, mostrar la página completa (no solo WalletSetup)
-  if (!isConnected && !walletLoading && !hasChipiPayWallet) {
+  // Mostrar WalletSetup solo si no hay wallet de Starknet Y no hay wallet de Cavos
+  // Si hay wallet de Cavos, mostrar la página completa (no solo WalletSetup)
+  if (!isConnected && !walletLoading && !isCavosConnected) {
     return (
       <DashboardLayout pageTitle={t.dashboard.sidebar.wallet}>
         <div className="min-h-screen bg-gradient-to-br from-orange-50 to-teal-50 flex items-center justify-center p-4">
@@ -121,7 +111,7 @@ export default function BilleteraPage() {
           </motion.div>
         )}
 
-        {/* Sección de Wallet ChipiPay */}
+        {/* Sección de Wallet Cavos */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -139,43 +129,41 @@ export default function BilleteraPage() {
                   <DollarSign className="w-4 h-4 text-white" />
                 </div>
                 <span style={{ color: '#1a1a1a', fontFamily: 'Kufam, sans-serif', fontWeight: 700 }}>
-                  Wallet ChipiPay (USDC)
+                  Wallet Cavos (USDT)
                 </span>
               </CardTitle>
               <CardDescription style={{ color: '#5d5d5d', fontFamily: 'Kufam, sans-serif' }}>
-                Crea una wallet ChipiPay para recibir pagos en USDC. Las transacciones son gasless (sin costo de gas).
+                Crea una wallet Cavos para recibir pagos en USDT. Las transacciones son gasless (sin costo de gas).
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {hasChipiPayWallet && chipiPayWallet ? (
+              {isCavosConnected && cavosWallet ? (
                 <div className="space-y-4">
                   <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
                     <h4 className="font-semibold text-green-800 mb-2" style={{ fontFamily: 'Kufam, sans-serif' }}>
-                      ✅ Wallet ChipiPay Activa
+                      ✅ Wallet Cavos Activa
                     </h4>
                     <div className="space-y-2 text-sm">
                       <div>
                         <span className="font-medium text-green-800">Dirección:</span>
                         <p className="font-mono text-green-800 break-all mt-1">
-                          {normalizedChipiPayAddress || chipiPayWallet.publicKey}
+                          {cavosAddress || cavosWallet.address}
                         </p>
-                        {normalizedChipiPayAddress && normalizedChipiPayAddress !== chipiPayWallet.publicKey && (
-                          <p className="text-xs text-green-600 mt-1">
-                            (Normalizada a 66 caracteres)
-                          </p>
-                        )}
                       </div>
                       <div>
-                        <span className="font-medium text-green-800">Balance USDC:</span>
-                        <p className="text-lg font-bold text-green-900 mt-1">
-                          {chipiPayBalanceLoading ? '...' : `${parseFloat(chipiPayUSDCBalance || '0').toFixed(6)} USDC`}
-                        </p>
+                        <span className="font-medium text-green-800">Balance USDT:</span>
+                        <div className="mt-1">
+                          <CavosBalance 
+                            token="USDT" 
+                            tokenAddress={process.env.NEXT_PUBLIC_STARKNET_USDT_ADDRESS || '0x068f5c6a61780768455de69077e07e89787839bf8166decfbf92b645209c0fb8'}
+                          />
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
               ) : (
-                <ChipiPayCreateWallet />
+                <CavosCreateWallet />
               )}
             </CardContent>
           </Card>

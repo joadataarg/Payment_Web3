@@ -10,12 +10,21 @@ class MidatoPayService {
   }
 
   // Generar QR de pago para comercio
-  async generatePaymentQR(merchantId, amountARS, concept = 'Pago QR') {
+  async generatePaymentQR(merchantId, amountARS, targetCrypto = 'USDT', concept = 'Pago QR', walletAddressFromRequest = null) {
     try {
       // 1. Obtener datos del comercio
-      const merchant = await this.getMerchant(merchantId);
+      let merchant = await this.getMerchant(merchantId);
       if (!merchant) {
         throw new Error('Merchant not found');
+      }
+      
+      // Si no tiene walletAddress pero se proporcionó en el request, usarla
+      if (!merchant.walletAddress && walletAddressFromRequest) {
+        console.log('✅ Usando walletAddress del request:', walletAddressFromRequest);
+        merchant = {
+          ...merchant,
+          walletAddress: walletAddressFromRequest
+        };
       }
 
       // 2. Generar payment ID único
@@ -82,7 +91,7 @@ class MidatoPayService {
           merchantAddress: merchant.walletAddress,
           merchantName: merchant.name,
           concept,
-          targetCrypto: 'USDT',
+          targetCrypto: targetCrypto || 'USDT',
           cryptoAmount,
           exchangeRate,
           sessionId: paymentId
@@ -112,8 +121,10 @@ class MidatoPayService {
       }
 
       // Usar la wallet real del comercio si existe
+      // Verificar si tiene walletAddress (puede ser de Cavos o del sistema anterior)
       if (!merchant.walletAddress) {
-        throw new Error('Merchant wallet not found. Please create a wallet first.');
+        // El usuario no tiene wallet. Necesita crear una primero.
+        throw new Error('Merchant wallet not found. Please create a wallet first. Go to /dashboard/billetera to create your Cavos wallet.');
       }
 
       console.log('✅ Merchant wallet encontrada:', merchant.walletAddress);
@@ -276,13 +287,18 @@ class MidatoPayService {
         ? path.join(starknetTokenPath, 'starkli', '.starkli', 'keystores', 'my_keystore.json')
         : path.join(starknetTokenPath, 'starkli', '.starkli', 'keystores', 'my_keystore.json')
       );
-      const keystorePassword = process.env.STARKNET_KEYSTORE_PASSWORD || 'vargaviella';
+      const keystorePassword = process.env.STARKNET_KEYSTORE_PASSWORD ? process.env.STARKNET_KEYSTORE_PASSWORD.trim() : 'vargaviella';
+      
+      // Obtener RPC URL desde variables de entorno (STARKLI_RPC tiene prioridad, luego STARKNET_RPC_URL)
+      const rpcUrl = process.env.STARKLI_RPC || process.env.STARKNET_RPC_URL || 'https://starknet-sepolia.public.blastapi.io/rpc/v0_7';
+      // Remover comillas si están presentes
+      const cleanRpcUrl = rpcUrl.replace(/^["']|["']$/g, '');
       
       // Convertir paymentId a formato hexadecimal válido para felt252
       const paymentIdHex = '0x' + Buffer.from(paymentId, 'utf8').toString('hex');
       
       // Primero hacer un dry-run para verificar que el calldata es correcto
-      const dryRunCommand = `${starkliPath} call ${contractAddress} pay ${merchantAddress} u256:${amountARS} ${tokenAddress} ${paymentIdHex} --network sepolia`;
+      const dryRunCommand = `${starkliPath} call ${contractAddress} pay ${merchantAddress} u256:${amountARS} ${tokenAddress} ${paymentIdHex} --rpc ${cleanRpcUrl}`;
       
       console.log('🧪 Ejecutando dry-run para verificar calldata:', dryRunCommand);
       
@@ -297,9 +313,8 @@ class MidatoPayService {
         console.warn('⚠️ Dry-run falló:', dryRunError.message);
         console.log('📝 Continuando con invoke real...');
       }
-
       // Ahora ejecutar la transacción real
-      const command = `${starkliPath} invoke ${contractAddress} pay ${merchantAddress} u256:${amountARS} ${tokenAddress} ${paymentIdHex} --account ${accountPath} --keystore ${keystorePath} --keystore-password ${keystorePassword} --network sepolia`;
+      const command = `${starkliPath} invoke ${contractAddress} pay ${merchantAddress} u256:${amountARS} ${tokenAddress} ${paymentIdHex} --account ${accountPath} --keystore ${keystorePath} --keystore-password ${keystorePassword} --rpc ${cleanRpcUrl}`;
 
       console.log('🔧 Ejecutando comando starkli:', command);
 

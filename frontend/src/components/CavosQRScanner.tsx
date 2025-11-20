@@ -6,22 +6,20 @@ import { QrCode, Wallet, ArrowRight, X } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { useTransfer } from '@/hooks/useChipiPayTransferSDK'
-import { useAccount } from '@starknet-react/core'
-import { useChipiPay } from '@/components/providers/ChipiPayProvider'
-import { useChipiPayWalletStorage } from '@/hooks/useChipiPayWalletStorage'
+import { useCavosTransfer } from '@/hooks/useCavosTransfer'
+import { useCavosWallet } from '@/hooks/useCavosWallet'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { useAuth } from '@/store/auth'
 
 /**
- * Componente para escanear QR de ChipiPay y procesar pagos
+ * Componente para escanear QR y procesar pagos usando Cavos
  * 
  * Este componente permite:
- * 1. Escanear un QR generado con ChipiPay
+ * 1. Escanear un QR generado
  * 2. Mostrar información del pago
- * 3. Procesar el pago usando useTransfer de ChipiPay
+ * 3. Procesar el pago usando Cavos transfers
  */
-interface ChipiPayQRData {
+interface PaymentQRData {
   paymentData: {
     amountARS: number
     targetCrypto: string
@@ -32,22 +30,23 @@ interface ChipiPayQRData {
   }
 }
 
-interface ChipiPayQRScannerProps {
+interface CavosQRScannerProps {
   onPaymentSuccess?: (txHash: string) => void
 }
 
-export function ChipiPayQRScanner({ onPaymentSuccess }: ChipiPayQRScannerProps) {
-  const { account, address } = useAccount()
+export function CavosQRScanner({ onPaymentSuccess }: CavosQRScannerProps) {
   const { user } = useAuth()
-  const { tokenAddresses } = useChipiPay()
-  const { wallet: chipiPayWallet, hasWallet } = useChipiPayWalletStorage()
-  const { transferAsync, isLoading: isTransferring, transferData } = useTransfer()
+  const { wallet, address, isConnected } = useCavosWallet()
+  const { transfer, isLoading: isTransferring, lastTransactionHash } = useCavosTransfer()
   const { t } = useLanguage()
-  const [scannedData, setScannedData] = useState<ChipiPayQRData | null>(null)
+  const [scannedData, setScannedData] = useState<PaymentQRData | null>(null)
   const [showScanner, setShowScanner] = useState(false)
-  const [pin, setPin] = useState('')
   const videoRef = useRef<HTMLVideoElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
+
+  // Direcciones de contratos (usar las variables de entorno correctas)
+  const USDT_CONTRACT = process.env.NEXT_PUBLIC_STARKNET_USDT_ADDRESS || '0x068f5c6a61780768455de69077e07e89787839bf8166decfbf92b645209c0fb8'
+  const STRK_CONTRACT = process.env.NEXT_PUBLIC_STARKNET_STRK_ADDRESS || '0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d'
 
   // Iniciar escáner de cámara
   const startScanner = async () => {
@@ -75,12 +74,10 @@ export function ChipiPayQRScanner({ onPaymentSuccess }: ChipiPayQRScannerProps) 
     setShowScanner(false)
   }
 
-  // Procesar QR escaneado (simulado por ahora)
+  // Procesar QR escaneado
   const handleQRScanned = (qrData: string) => {
     try {
-      // Parsear el QR (en producción, usar una librería real de QR)
-      // Por ahora, asumimos que el QR contiene JSON
-      const data = JSON.parse(qrData) as ChipiPayQRData
+      const data = JSON.parse(qrData) as PaymentQRData
       setScannedData(data)
       stopScanner()
       toast.success('QR escaneado correctamente')
@@ -89,58 +86,56 @@ export function ChipiPayQRScanner({ onPaymentSuccess }: ChipiPayQRScannerProps) 
     }
   }
 
-  // Procesar pago con ChipiPay
+  // Procesar pago con Cavos
   const handleProcessPayment = async () => {
     if (!scannedData) {
       toast.error('Datos de pago inválidos')
       return
     }
 
-    if (!hasWallet || !chipiPayWallet) {
-      toast.error('Necesitas tener una wallet ChipiPay creada para procesar pagos')
-      return
-    }
-
-    if (!pin || pin.length < 4) {
-      toast.error('Ingresa tu PIN (mínimo 4 caracteres)')
+    if (!isConnected || !address) {
+      toast.error('Necesitas tener una wallet Cavos conectada para procesar pagos')
       return
     }
 
     try {
-      const apiKey = process.env.NEXT_PUBLIC_CHIPI_API_KEY
-      const secretKey = process.env.CHIPI_SECRET_KEY
-      const bearerToken = secretKey || apiKey || ''
+      // Determinar dirección del contrato según el token
+      let tokenContractAddress = ''
+      let decimals = 18
 
-      if (!bearerToken) {
-        toast.error('Credenciales de ChipiPay no configuradas')
+      if (scannedData.paymentData.targetCrypto === 'USDT') {
+        tokenContractAddress = USDT_CONTRACT
+        decimals = 6
+      } else if (scannedData.paymentData.targetCrypto === 'STRK') {
+        tokenContractAddress = STRK_CONTRACT
+        decimals = 18
+      } else {
+        toast.error(`Token ${scannedData.paymentData.targetCrypto} no soportado. Usa USDT o STRK.`)
         return
       }
 
-      // Convertir amount a formato con decimals (USDC tiene 6 decimals)
-      const decimals = 6
-      const amountInSmallestUnit = Math.floor(parseFloat(scannedData.paymentData.cryptoAmount.toString()) * Math.pow(10, decimals))
+      // Convertir amount a formato con decimals
+      const amountInSmallestUnit = Math.floor(
+        parseFloat(scannedData.paymentData.cryptoAmount.toString()) * Math.pow(10, decimals)
+      ).toString()
 
-      // Ejecutar transferencia usando useTransfer
-      // ChipiPay maneja USDC automáticamente, no necesitamos contractAddress
-      const txHash = await transferAsync({
-        params: {
-          encryptKey: pin,
-          wallet: {
-            publicKey: chipiPayWallet.publicKey,
-            encryptedPrivateKey: chipiPayWallet.encryptedPrivateKey
-          },
-          token: 'USDC', // ChipiPay resuelve la dirección del contrato automáticamente
-          recipient: scannedData.paymentData.walletAddress || account?.address || '',
-          amount: amountInSmallestUnit.toString(),
-          decimals: decimals,
-        },
-        bearerToken,
-      })
+      const recipient = scannedData.paymentData.walletAddress || ''
+      if (!recipient) {
+        toast.error('Dirección del destinatario no válida')
+        return
+      }
 
-      if (txHash) {
+      // Ejecutar transferencia usando Cavos
+      const result = await transfer(
+        tokenContractAddress,
+        recipient,
+        amountInSmallestUnit
+      )
+
+      if (result.success && result.transactionHash) {
         // Guardar transacción en backend
         try {
-          const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/chipipay/transactions`, {
+          const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/cavos/transactions`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -149,9 +144,9 @@ export function ChipiPayQRScanner({ onPaymentSuccess }: ChipiPayQRScannerProps) 
               sessionId: scannedData.paymentData.sessionId,
               amountARS: scannedData.paymentData.amountARS,
               amountUSDC: scannedData.paymentData.cryptoAmount,
-              txHash: txHash,
-              fromAddress: chipiPayWallet.publicKey,
-              toAddress: scannedData.paymentData.walletAddress || account?.address,
+              txHash: result.transactionHash,
+              fromAddress: address,
+              toAddress: recipient,
               status: 'completed',
               userId: user?.id
             })
@@ -160,15 +155,19 @@ export function ChipiPayQRScanner({ onPaymentSuccess }: ChipiPayQRScannerProps) 
           if (response.ok) {
             toast.success('Pago procesado exitosamente!')
             if (onPaymentSuccess) {
-              onPaymentSuccess(txHash)
+              onPaymentSuccess(result.transactionHash)
             }
+            setScannedData(null)
           } else {
             toast.success('Pago procesado, pero no se pudo guardar en el historial')
           }
         } catch (error) {
           console.error('Error guardando transacción:', error)
           toast.success('Pago procesado exitosamente!')
+          setScannedData(null)
         }
+      } else {
+        throw new Error(result.error || 'Error al procesar el pago')
       }
     } catch (error) {
       console.error('Error procesando pago:', error)
@@ -183,18 +182,18 @@ export function ChipiPayQRScanner({ onPaymentSuccess }: ChipiPayQRScannerProps) 
     }
   }, [])
 
-  if (!hasWallet || !chipiPayWallet) {
+  if (!isConnected || !address) {
     return (
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
             <Wallet className="w-5 h-5" style={{ color: '#fe6c1c' }} />
-            <span>Crear Wallet ChipiPay</span>
+            <span>Crear Wallet Cavos</span>
           </CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-sm mb-4" style={{ color: '#5d5d5d' }}>
-            Necesitas crear una wallet ChipiPay antes de poder escanear y procesar pagos.
+            Necesitas crear una wallet Cavos antes de poder escanear y procesar pagos.
           </p>
         </CardContent>
       </Card>
@@ -220,29 +219,11 @@ export function ChipiPayQRScanner({ onPaymentSuccess }: ChipiPayQRScannerProps) 
             </p>
           </div>
 
-          <div className="space-y-2">
-            <label className="text-sm font-medium" style={{ color: '#1a1a1a' }}>
-              PIN de tu wallet ChipiPay
-            </label>
-            <input
-              type="password"
-              value={pin}
-              onChange={(e) => setPin(e.target.value)}
-              placeholder="Ingresa tu PIN"
-              className="w-full p-3 rounded-lg border"
-              style={{ 
-                backgroundColor: 'rgba(247, 247, 246, 0.8)', 
-                border: '1px solid rgba(254,108,28,0.2)'
-              }}
-            />
-          </div>
-
           <div className="flex space-x-3">
             <Button
               variant="outline"
               onClick={() => {
                 setScannedData(null)
-                setPin('')
               }}
               className="flex-1"
             >
@@ -250,7 +231,7 @@ export function ChipiPayQRScanner({ onPaymentSuccess }: ChipiPayQRScannerProps) 
             </Button>
             <Button
               onClick={handleProcessPayment}
-              disabled={isTransferring || !pin}
+              disabled={isTransferring}
               className="flex-1"
               style={{ 
                 backgroundColor: '#fe6c1c', 
@@ -277,7 +258,7 @@ export function ChipiPayQRScanner({ onPaymentSuccess }: ChipiPayQRScannerProps) 
         {!showScanner ? (
           <>
             <p className="text-sm" style={{ color: '#5d5d5d' }}>
-              Escanea el QR generado por el comercio para procesar el pago con ChipiPay.
+              Escanea el QR generado por el comercio para procesar el pago con Cavos.
             </p>
             <Button
               onClick={startScanner}

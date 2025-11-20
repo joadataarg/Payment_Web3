@@ -11,8 +11,6 @@
   },
   "dependencies": {
     "@cavos/aegis": "^0.1.7",
-    "@chipi-pay/chipi-sdk": "^3.2.2",
-    "@chipi-stack/nextjs": "^11.11.0",
     "@clerk/nextjs": "^5.7.5",
     "@fortawesome/fontawesome-svg-core": "^7.1.0",
     "@fortawesome/free-brands-svg-icons": "^7.1.0",
