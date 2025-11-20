@@ -195,7 +195,7 @@ export function CavosCreateWallet() {
 
             <Button
               type="submit"
-              disabled={isCreating || (pin && pin.length > 0 && pin.length < 4) || (pin && pin !== confirmPin)}
+              disabled={isCreating || (pin.length > 0 && pin.length < 4) || (pin.length > 0 && pin !== confirmPin)}
               className="w-full"
               style={{ 
                 backgroundColor: '#fe6c1c', 

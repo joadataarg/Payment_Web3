@@ -33,6 +33,7 @@ export async function fetchWithClerkToken(
   }
 
   if (token) {
+    // @ts-expect-error
     headers['Authorization'] = `Bearer ${token}`
   }
 

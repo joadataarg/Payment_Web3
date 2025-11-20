@@ -40,7 +40,7 @@ export default function SendPaymentPage() {
   const rawWalletAddress = cavosAddress || profileUser?.walletAddress || authUser?.walletAddress
   const walletAddress = rawWalletAddress ? normalizeStarknetAddress(rawWalletAddress) || rawWalletAddress : undefined
   
-  const { transfer, isLoading: isTransferring, error: transferError, transactionHash } = useCavosTransfer()
+  const { transfer, isLoading: isTransferring, error: transferError, lastTransactionHash } = useCavosTransfer()
   
   // Verificar si hay wallet en localStorage o en la BD
   const hasCavosWallet = isCavosConnected || !!cavosWallet || !!profileUser?.walletAddress || !!authUser?.walletAddress
@@ -171,7 +171,7 @@ export default function SendPaymentPage() {
       )
 
       // transactionHash contiene directamente el hash de la transacción
-      const txHashValue = result.transactionHash || transactionHash
+      const txHashValue = result.transactionHash || lastTransactionHash
       
       if (result.success && txHashValue) {
         setTxHash(txHashValue)
@@ -471,7 +471,7 @@ export default function SendPaymentPage() {
                       />
                       <select
                         value={amountType}
-                        onChange={(e) => setAmountType(e.target.value as 'ARS' | 'USDC')}
+                        onChange={(e) => setAmountType(e.target.value as 'ARS' | 'USDT')}
                         style={{
                           backgroundColor: 'rgba(247, 247, 246, 0.8)',
                           border: '1px solid rgba(254,108,28,0.2)',

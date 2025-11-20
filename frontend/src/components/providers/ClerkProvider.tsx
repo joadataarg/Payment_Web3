@@ -36,13 +36,12 @@ export function ClerkProvider({ children }: ClerkProviderProps) {
   }
 
   // Renderizar el provider solo con una clave válida
-  // Usar fallbackRedirectUrl en lugar de afterSignInUrl (deprecated)
   return (
     <ClerkProviderBase 
       publishableKey={publishableKey}
       signInUrl="/auth/login"
       signUpUrl="/auth/register"
-      fallbackRedirectUrl="/dashboard"
+      signInFallbackRedirectUrl="/dashboard"
     >
       {children}
     </ClerkProviderBase>
