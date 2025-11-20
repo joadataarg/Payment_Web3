@@ -46,7 +46,7 @@ export default function SendPaymentPage() {
   const hasCavosWallet = isCavosConnected || !!cavosWallet || !!profileUser?.walletAddress || !!authUser?.walletAddress
   const user = profileUser || authUser
 
-  const USDT_CONTRACT = process.env.NEXT_PUBLIC_STARKNET_USDT_ADDRESS || '0x068f5c6a61780768455de69077e07e89787839bf8166decfbf92b645209c0fb8'
+  const USDT_CONTRACT = process.env.NEXT_PUBLIC_STARKNET_USDT_ADDRESS || '0x008D4C6451c45ef46Eff81b13e1a3F2237642b97E528Ce1ae1d8B8eE2b267e8D'
 
   const [recipientAddress, setRecipientAddress] = useState('')
   const [amount, setAmount] = useState('')

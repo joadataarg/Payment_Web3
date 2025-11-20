@@ -45,7 +45,7 @@ export function CavosQRScanner({ onPaymentSuccess }: CavosQRScannerProps) {
   const streamRef = useRef<MediaStream | null>(null)
 
   // Direcciones de contratos (usar las variables de entorno correctas)
-  const USDT_CONTRACT = process.env.NEXT_PUBLIC_STARKNET_USDT_ADDRESS || '0x068f5c6a61780768455de69077e07e89787839bf8166decfbf92b645209c0fb8'
+  const USDT_CONTRACT = process.env.NEXT_PUBLIC_STARKNET_USDT_ADDRESS || '0x008D4C6451c45ef46Eff81b13e1a3F2237642b97E528Ce1ae1d8B8eE2b267e8D'
   const STRK_CONTRACT = process.env.NEXT_PUBLIC_STARKNET_STRK_ADDRESS || '0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d'
 
   // Iniciar escáner de cámara
