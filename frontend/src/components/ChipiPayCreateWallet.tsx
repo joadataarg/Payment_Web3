@@ -9,8 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useCreateWallet as useChipiCreateWallet } from '@chipi-stack/nextjs'
-import { useAuth as useClerkAuth } from '@clerk/nextjs'
-import { useAuth } from '@/store/auth'
+import { useAuth as useClerkAuth, useUser } from '@clerk/nextjs'
 import { useChipiPayWalletStorage } from '@/hooks/useChipiPayWalletStorage'
 import { normalizeStarknetAddress } from '@/utils/starknetAddress'
 
@@ -28,7 +27,8 @@ import { normalizeStarknetAddress } from '@/utils/starknetAddress'
  * Requiere que la app esté envuelta con ChipiPaySDKProvider.
  */
 export function ChipiPayCreateWallet() {
-  const { user, token: jwtToken } = useAuth()
+  // Use Clerk's useUser() hook for user ID as per ChipiPay SDK documentation
+  const { user: clerkUser } = useUser()
   const { getToken: getClerkToken, isSignedIn: isClerkSignedIn } = useClerkAuth()
   const [pin, setPin] = useState('')
   const [confirmPin, setConfirmPin] = useState('')
@@ -36,26 +36,6 @@ export function ChipiPayCreateWallet() {
   const { saveWallet, wallet: storedWallet } = useChipiPayWalletStorage()
   
   const hasWallet = !!storedWallet?.publicKey
-  
-  // Función para obtener el token correcto según el método de autenticación
-  const getAuthToken = async (): Promise<string | null> => {
-    // Si hay token JWT (autenticación tradicional), usarlo
-    if (jwtToken) {
-      console.log('🔑 Usando token JWT para autenticación')
-      return jwtToken
-    }
-    
-    // Si no hay JWT pero hay sesión de Clerk, usar token de Clerk
-    if (isClerkSignedIn) {
-      const clerkToken = await getClerkToken()
-      if (clerkToken) {
-        console.log('🔑 Usando token de Clerk para autenticación')
-        return clerkToken
-      }
-    }
-    
-    return null
-  }
   
   useEffect(() => {
     if (error) {
@@ -83,7 +63,7 @@ export function ChipiPayCreateWallet() {
     }
 
     try {
-      // Obtener token de sesión de Clerk para ChipiPay SDK
+      // Use Clerk's getToken() as per ChipiPay engineer's recommendation
       const bearerToken = await getClerkToken()
       
       if (!bearerToken) {
@@ -91,14 +71,20 @@ export function ChipiPayCreateWallet() {
         return
       }
       
-      console.log('🔑 Token obtenido para crear wallet, longitud:', bearerToken.length)
-      console.log('👤 Usuario autenticado:', user?.email || 'N/A')
+      // Use Clerk's user.id as per ChipiPay SDK documentation
+      if (!clerkUser?.id) {
+        toast.error('Usuario no autenticado. Por favor, inicia sesión.')
+        return
+      }
       
-      // Usar el SDK del frontend directamente (funciona mejor que el del backend)
+      console.log('🔑 Token obtenido para crear wallet, longitud:', bearerToken.length)
+      console.log('👤 Usuario autenticado (Clerk ID):', clerkUser.id)
+      
+      // Use Clerk's getToken() and user.id as per ChipiPay SDK documentation
       const walletResponse = await createWalletAsync({
         params: {
           encryptKey: pin,
-          externalUserId: user?.id || user?.email || `user-${Date.now()}`
+          externalUserId: clerkUser.id
         },
         bearerToken
       })
@@ -131,8 +117,8 @@ export function ChipiPayCreateWallet() {
         
         // Guardar en la base de datos
         try {
-          // Obtener un nuevo token para la llamada al backend (puede ser diferente)
-          const backendToken = await getAuthToken()
+          // Use Clerk token for backend save
+          const backendToken = await getClerkToken()
           
           if (!backendToken) {
             console.warn('⚠️ No se pudo obtener token para guardar en BD, pero wallet está en localStorage')
