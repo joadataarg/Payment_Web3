@@ -13,13 +13,12 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 # Instalar starkli CLI para ejecutar transacciones en Starknet
-RUN curl -sSfL "https://github.com/software-mansion/starkli/releases/download/v${STARKLI_VERSION}/starkli-${STARKLI_TARGET}.tar.xz" -o /tmp/starkli.tar.xz && \
-    tar -xf /tmp/starkli.tar.xz -C /tmp && \
-    mv /tmp/starkli /usr/local/bin/starkli && \
-    chmod +x /usr/local/bin/starkli && \
-    rm -rf /tmp/starkli /tmp/starkli.tar.xz
+RUN curl https://get.starkli.sh | sh
+RUN starkliup
 
-ENV STARKLI_PATH=/usr/local/bin/starkli
+ENV STARKLI_PATH=~/.starkli/bin/starkli
+
+RUN ln -s ~/.starkli/bin/starkli /usr/local/bin/starkli
 
 WORKDIR /app
 
