@@ -2,7 +2,7 @@
 
 import { motion } from 'framer-motion'
 import { useTransactions } from '@/hooks/useTransactions'
-import { useChipiPayTransactions } from '@/hooks/useChipiPayTransactions'
+import { useCavosTransactions } from '@/hooks/useCavosTransactions'
 import { useLanguage } from '@/contexts/LanguageContext'
 import DashboardLayout from '@/components/DashboardLayout'
 import { Card, CardContent } from '@/components/ui/card'
@@ -10,21 +10,21 @@ import { CheckCircle, DollarSign } from 'lucide-react'
 
 export default function MovimientosPage() {
   const { transactions, loading: transactionsLoading, error: transactionsError } = useTransactions()
-  const { transactions: chipiPayTransactions, isLoading: chipiPayLoading, error: chipiPayError } = useChipiPayTransactions()
+  const { transactions: cavosTransactions, isLoading: cavosLoading, error: cavosError } = useCavosTransactions()
   const { t } = useLanguage()
   
   // Combinar transacciones y ordenar por fecha
   const allTransactions = [
     ...transactions.map(tx => ({ ...tx, type: 'standard' as const })),
-    ...chipiPayTransactions.map(tx => ({ ...tx, type: 'chipipay' as const }))
+    ...cavosTransactions.map(tx => ({ ...tx, type: 'cavos' as const }))
   ].sort((a, b) => {
     const dateA = new Date(a.createdAt).getTime()
     const dateB = new Date(b.createdAt).getTime()
     return dateB - dateA
   })
   
-  const isLoading = transactionsLoading || chipiPayLoading
-  const hasError = transactionsError || chipiPayError
+  const isLoading = transactionsLoading || cavosLoading
+  const hasError = transactionsError || cavosError
 
   return (
     <DashboardLayout pageTitle={t.dashboard.movements}>
@@ -64,7 +64,7 @@ export default function MovimientosPage() {
                   </div>
                   <h4 className="text-lg font-medium mb-2" style={{ color: '#5d5d5d', fontFamily: 'Kufam, sans-serif', fontWeight: 700 }}>{t.dashboard.errorLoading}</h4>
                   <p className="text-sm" style={{ color: '#5d5d5d', fontFamily: 'Kufam, sans-serif', fontWeight: 400 }}>
-                    {transactionsError || chipiPayError}
+                    {transactionsError || cavosError || 'Error al obtener transacciones'}
                   </p>
                 </div>
               ) : allTransactions.length === 0 ? (
@@ -85,11 +85,11 @@ export default function MovimientosPage() {
                     <div key={transaction.id} className="flex items-center justify-between p-4 bg-white rounded-lg border" style={{ borderColor: 'rgba(254,108,28,0.2)' }}>
                       <div className="flex items-center space-x-4">
                         <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ 
-                          backgroundColor: transaction.type === 'chipipay' 
-                            ? (transaction.status === 'completed' ? '#2775CA' : '#F59E0B')
+                          backgroundColor: transaction.type === 'cavos' 
+                            ? (transaction.status === 'completed' ? '#fe6c1c' : '#F59E0B')
                             : (transaction.status === 'CONFIRMED' ? '#10B981' : '#F59E0B')
                         }}>
-                          {transaction.type === 'chipipay' ? (
+                          {transaction.type === 'cavos' ? (
                             <DollarSign className="w-5 h-5 text-white" />
                           ) : transaction.status === 'CONFIRMED' ? (
                             <CheckCircle className="w-5 h-5 text-white" />
@@ -101,14 +101,14 @@ export default function MovimientosPage() {
                         </div>
                         <div>
                           <h5 className="font-medium" style={{ color: '#2C2C2C', fontFamily: 'Kufam, sans-serif', fontWeight: 600 }}>
-                            {transaction.type === 'chipipay' 
-                              ? `Pago ChipiPay - ${transaction.sessionId.substring(0, 8)}...`
+                            {transaction.type === 'cavos' 
+                              ? `Pago Cavos - ${transaction.sessionId?.substring(0, 8) || 'N/A'}...`
                               : transaction.payment?.concept || 'Transacción'}
                           </h5>
                           <p className="text-sm" style={{ color: '#8B8B8B', fontFamily: 'Kufam, sans-serif', fontWeight: 400 }}>
                             {new Date(transaction.createdAt).toLocaleDateString('es-AR')} {new Date(transaction.createdAt).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
                           </p>
-                          {transaction.type === 'chipipay' && transaction.txHash && (
+                          {transaction.type === 'cavos' && transaction.txHash && (
                             <p className="text-xs font-mono" style={{ color: '#8B8B8B', fontFamily: 'Kufam, sans-serif' }}>
                               TX: {transaction.txHash.substring(0, 16)}...
                             </p>
@@ -117,16 +117,16 @@ export default function MovimientosPage() {
                       </div>
                       <div className="text-right">
                         <p className="font-bold" style={{ color: '#FF6A00', fontFamily: 'Kufam, sans-serif', fontWeight: 600 }}>
-                          ${transaction.type === 'chipipay' 
+                          ${transaction.type === 'cavos' 
                             ? transaction.amountARS.toLocaleString('es-AR')
                             : transaction.amount.toLocaleString('es-AR')} ARS
                         </p>
                         <p className="text-sm" style={{ color: '#8B8B8B', fontFamily: 'Kufam, sans-serif', fontWeight: 400 }}>
-                          → {transaction.type === 'chipipay' 
-                            ? `${transaction.amountUSDC.toFixed(6)} USDC`
+                          → {transaction.type === 'cavos' 
+                            ? `${transaction.amountUSDC.toFixed(6)} USDT`
                             : `${transaction.finalAmount?.toFixed(6) || '0'} ${transaction.finalCurrency || 'USDT'}`}
                         </p>
-                        {transaction.type === 'chipipay' && (
+                        {transaction.type === 'cavos' && (
                           <span className="text-xs px-2 py-1 rounded" style={{ 
                             backgroundColor: transaction.status === 'completed' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.1)',
                             color: transaction.status === 'completed' ? '#10B981' : '#F59E0B'
