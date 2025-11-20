@@ -322,19 +322,25 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              {/* USDC (Cavos) Card */}
+              {/* USDT (Cavos) Card */}
               {isCavosConnected && cavosAddress && (
                 <div className="flex items-center justify-between border-t border-orange-200" style={{ padding: '16px 0', marginTop: '16px' }}>
                   <div className="flex items-center space-x-4">
-                    <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ backgroundColor: '#2775CA' }}>
+                    <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ backgroundColor: '#009393' }}>
                       <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
-                        <circle cx="12" cy="12" r="12" fill="#2775CA"/>
-                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" fill="#fff"/>
-                        <path d="M12 6v12m-6-6h12" stroke="#fff" strokeWidth="2" strokeLinecap="round"/>
+                        <g clipPath="url(#USDT_real)">
+                          <path fill="#009393" d="M24 0H0v24h24z"/>
+                          <path fill="#fff" d="m12 18.4-8-7.892L7.052 5.6h9.896L20 10.508zm.8-7.2v-.976c1.44.072 2.784.352 3.2.716-.484.424-2.216.732-4 .732s-3.516-.308-4-.732c.412-.364 1.76-.64 3.2-.72v.98zM8 10.936v.588c.412.364 1.756.64 3.2.72V14.4h1.6v-2.16c1.44-.072 2.788-.352 3.2-.716v-1.172c-.412-.364-1.76-.644-3.2-.72V8.8h2.4V7.6H8.8v1.2h2.4v.832c-1.444.076-2.788.356-3.2.72z"/>
+                        </g>
+                        <defs>
+                          <clipPath id="USDT_real">
+                            <path fill="#fff" d="M0 0h24v24H0z"/>
+                          </clipPath>
+                        </defs>
                       </svg>
                     </div>
                     <div>
-                      <h5 className="font-bold" style={{ color: '#2C2C2C', fontFamily: 'Kufam, sans-serif', fontWeight: 700 }}>USDC</h5>
+                      <h5 className="font-bold" style={{ color: '#2C2C2C', fontFamily: 'Kufam, sans-serif', fontWeight: 700 }}>USDT</h5>
                       <p className="text-sm" style={{ color: '#8B8B8B', fontFamily: 'Kufam, sans-serif', fontWeight: 400 }}>Cavos</p>
                     </div>
                   </div>
@@ -343,8 +349,8 @@ export default function DashboardPage() {
                     <div className="text-left">
                       <p className="text-sm" style={{ color: '#8B8B8B', fontFamily: 'Kufam, sans-serif', fontWeight: 400 }}>{t.dashboard.balance}</p>
                       <CavosBalance 
-                        token="USDC" 
-                        tokenAddress={process.env.NEXT_PUBLIC_USDC_CONTRACT_ADDRESS || '0x053c91253bc9682c04929ca02ed00b3e423f6710d2ee7e0d5ebb06f3ecf368a8'}
+                        token="USDT" 
+                        tokenAddress={process.env.NEXT_PUBLIC_STARKNET_USDT_ADDRESS || '0x068f5c6a61780768455de69077e07e89787839bf8166decfbf92b645209c0fb8'}
                         address={cavosAddress}
                       />
                     </div>

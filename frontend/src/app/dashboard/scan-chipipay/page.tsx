@@ -27,8 +27,9 @@ export default function ScanChipiPayPage() {
   const { transfer, isLoading: isTransferring, lastTransactionHash } = useCavosTransfer()
   const { t } = useLanguage()
   
-  // Direcciones de contratos
-  const USDC_CONTRACT = process.env.NEXT_PUBLIC_USDC_CONTRACT_ADDRESS || '0x053c91253bc9682c04929ca02ed00b3e423f6710d2ee7e0d5ebb06f3ecf368a8'
+    // Direcciones de contratos (usar las variables de entorno correctas)
+    const USDT_CONTRACT = process.env.NEXT_PUBLIC_STARKNET_USDT_ADDRESS || '0x068f5c6a61780768455de69077e07e89787839bf8166decfbf92b645209c0fb8'
+    const STRK_CONTRACT = process.env.NEXT_PUBLIC_STARKNET_STRK_ADDRESS || '0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d'
   
   const [scannedData, setScannedData] = useState<any>(null)
   const [showScanner, setShowScanner] = useState(false)
@@ -108,13 +109,13 @@ export default function ScanChipiPayPage() {
         return
       }
 
-      // Validar estructura de datos
-      if (data.paymentData && data.paymentData.targetCrypto === 'USDC') {
+      // Validar estructura de datos (aceptar USDT o STRK)
+      if (data.paymentData && (data.paymentData.targetCrypto === 'USDT' || data.paymentData.targetCrypto === 'STRK')) {
         setScannedData(data)
         stopScanner()
         toast.success('QR escaneado correctamente')
       } else {
-        toast.error('Este QR no es válido')
+        toast.error('Este QR no es válido. Debe ser USDT o STRK.')
       }
     } catch (error) {
       console.error('Error procesando QR:', error)
@@ -134,11 +135,14 @@ export default function ScanChipiPayPage() {
       let tokenContractAddress = ''
       let decimals = 18
 
-      if (scannedData.paymentData.targetCrypto === 'USDC') {
-        tokenContractAddress = USDC_CONTRACT
+      if (scannedData.paymentData.targetCrypto === 'USDT') {
+        tokenContractAddress = USDT_CONTRACT
         decimals = 6
+      } else if (scannedData.paymentData.targetCrypto === 'STRK') {
+        tokenContractAddress = STRK_CONTRACT
+        decimals = 18
       } else {
-        toast.error(`Token ${scannedData.paymentData.targetCrypto} no soportado`)
+        toast.error(`Token ${scannedData.paymentData.targetCrypto} no soportado. Usa USDT o STRK.`)
         return
       }
 
@@ -171,7 +175,7 @@ export default function ScanChipiPayPage() {
             body: JSON.stringify({
               sessionId: scannedData.paymentData.sessionId,
               amountARS: scannedData.paymentData.amountARS,
-              amountUSDC: scannedData.paymentData.cryptoAmount,
+              amountUSDC: scannedData.paymentData.cryptoAmount, // Mantener nombre del campo para compatibilidad con BD
               txHash: result.transactionHash,
               fromAddress: cavosAddress,
               toAddress: recipient,

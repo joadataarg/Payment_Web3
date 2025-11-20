@@ -129,11 +129,11 @@ export default function BilleteraPage() {
                   <DollarSign className="w-4 h-4 text-white" />
                 </div>
                 <span style={{ color: '#1a1a1a', fontFamily: 'Kufam, sans-serif', fontWeight: 700 }}>
-                  Wallet Cavos (USDC)
+                  Wallet Cavos (USDT)
                 </span>
               </CardTitle>
               <CardDescription style={{ color: '#5d5d5d', fontFamily: 'Kufam, sans-serif' }}>
-                Crea una wallet Cavos para recibir pagos en USDC. Las transacciones son gasless (sin costo de gas).
+                Crea una wallet Cavos para recibir pagos en USDT. Las transacciones son gasless (sin costo de gas).
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -151,11 +151,11 @@ export default function BilleteraPage() {
                         </p>
                       </div>
                       <div>
-                        <span className="font-medium text-green-800">Balance USDC:</span>
+                        <span className="font-medium text-green-800">Balance USDT:</span>
                         <div className="mt-1">
                           <CavosBalance 
-                            token="USDC" 
-                            tokenAddress={process.env.NEXT_PUBLIC_USDC_CONTRACT_ADDRESS || '0x053c91253bc9682c04929ca02ed00b3e423f6710d2ee7e0d5ebb06f3ecf368a8'}
+                            token="USDT" 
+                            tokenAddress={process.env.NEXT_PUBLIC_STARKNET_USDT_ADDRESS || '0x068f5c6a61780768455de69077e07e89787839bf8166decfbf92b645209c0fb8'}
                             address={cavosAddress}
                           />
                         </div>

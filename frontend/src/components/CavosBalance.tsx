@@ -10,9 +10,9 @@ interface CavosBalanceProps {
    */
   address?: string
   /**
-   * Token a mostrar ('USDC' | 'USDT' | 'ETH')
+   * Token a mostrar ('USDT' | 'STRK' | 'ETH')
    */
-  token?: 'USDC' | 'USDT' | 'ETH'
+  token?: 'USDT' | 'STRK' | 'ETH'
   /**
    * Dirección del contrato del token (requerida para USDC/USDT)
    */
@@ -71,15 +71,15 @@ export function CavosBalance({
         if (token === 'ETH') {
           balanceValue = await getETHBalance()
         } else if (tokenAddress) {
-          // USDC tiene 6 decimales, USDT tiene 6, otros tokens pueden tener 18
-          const decimals = token === 'USDC' || token === 'USDT' ? 6 : 18
+          // USDT tiene 6 decimales, STRK tiene 18
+          const decimals = token === 'USDT' ? 6 : 18
           balanceValue = await getTokenBalance(tokenAddress, decimals)
         } else {
           throw new Error(`Dirección del contrato requerida para ${token}`)
         }
 
         // Formatear balance (dividir por decimales)
-        const decimals = token === 'USDC' || token === 'USDT' ? 6 : 18
+        const decimals = token === 'USDT' ? 6 : 18
         const formattedBalance = (parseFloat(balanceValue) / Math.pow(10, decimals)).toFixed(6)
         setBalance(formattedBalance)
       } catch (err) {
