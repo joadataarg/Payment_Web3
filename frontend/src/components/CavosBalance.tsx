@@ -57,8 +57,35 @@ export function CavosBalance({
 
   useEffect(() => {
     const fetchBalance = async () => {
+      // Si se proporciona una address externa, no podemos obtener el balance directamente
+      // porque necesitamos la wallet conectada para hacer las llamadas
+      // Por ahora, solo funcionamos con wallet conectada (no address externa)
+      if (address) {
+        setIsLoading(false)
+        setError('Para consultar balance de una dirección externa, se requiere wallet conectada')
+        return
+      }
+
+      // Si no hay wallet conectada, esperar o mostrar error
+      if (!isConnected) {
+        // Esperar un poco para que la wallet se conecte si está en proceso (máximo 2 segundos)
+        let attempts = 0
+        while (attempts < 4 && !isConnected) {
+          await new Promise(resolve => setTimeout(resolve, 500))
+          attempts++
+        }
+        
+        if (!isConnected) {
+          setIsLoading(false)
+          setError('Wallet no conectada')
+          return
+        }
+      }
+
+      // Verificar que tenemos la dirección de la wallet
       if (!targetAddress) {
         setIsLoading(false)
+        setError('Wallet no conectada')
         return
       }
 
@@ -92,7 +119,7 @@ export function CavosBalance({
     }
 
     fetchBalance()
-  }, [targetAddress, token, tokenAddress, getETHBalance, getTokenBalance])
+  }, [targetAddress, token, tokenAddress, getETHBalance, getTokenBalance, isConnected, address])
 
   // Si no hay wallet conectada y no se especificó address
   if (!isConnected && !address) {

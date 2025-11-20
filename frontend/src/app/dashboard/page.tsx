@@ -351,7 +351,6 @@ export default function DashboardPage() {
                       <CavosBalance 
                         token="USDT" 
                         tokenAddress={process.env.NEXT_PUBLIC_STARKNET_USDT_ADDRESS || '0x068f5c6a61780768455de69077e07e89787839bf8166decfbf92b645209c0fb8'}
-                        address={cavosAddress}
                       />
                     </div>
                     <div className="text-left">

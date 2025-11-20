@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { useAegis } from '@cavos/aegis'
 import { useCavosWalletStorage, CavosWalletData } from './useCavosWalletStorage'
 
@@ -147,12 +147,38 @@ export function useCavosWallet() {
   const connectStoredWallet = useCallback(async () => {
     if (storedWallet?.privateKey && aegisAccount) {
       try {
-        await connectWallet(storedWallet.privateKey)
+        // Solo conectar si no está ya conectada o si la dirección es diferente
+        if (!aegisAccount.address || aegisAccount.address !== storedWallet.address) {
+          await connectWallet(storedWallet.privateKey)
+        }
       } catch (err) {
         console.error('Error conectando wallet guardada:', err)
       }
     }
   }, [storedWallet, aegisAccount, connectWallet])
+
+  // Auto-conectar wallet guardada cuando el hook se monta
+  useEffect(() => {
+    const autoConnect = async () => {
+      if (storedWallet?.privateKey && aegisAccount) {
+        // Solo conectar si no está ya conectada o si la dirección es diferente
+        if (!aegisAccount.address || (storedWallet.address && aegisAccount.address !== storedWallet.address)) {
+          try {
+            await connectStoredWallet()
+          } catch (err) {
+            console.error('Error auto-conectando wallet:', err)
+          }
+        }
+      }
+    }
+    
+    // Pequeño delay para asegurar que aegisAccount esté inicializado
+    const timer = setTimeout(() => {
+      autoConnect()
+    }, 100)
+    
+    return () => clearTimeout(timer)
+  }, [storedWallet?.privateKey, storedWallet?.address, aegisAccount, connectStoredWallet])
 
   return {
     // Estado
