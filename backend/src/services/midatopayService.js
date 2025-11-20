@@ -287,7 +287,7 @@ class MidatoPayService {
         ? path.join(starknetTokenPath, 'starkli', '.starkli', 'keystores', 'my_keystore.json')
         : path.join(starknetTokenPath, 'starkli', '.starkli', 'keystores', 'my_keystore.json')
       );
-      const keystorePassword = process.env.STARKNET_KEYSTORE_PASSWORD || 'vargaviella';
+      const keystorePassword = process.env.STARKNET_KEYSTORE_PASSWORD ? process.env.STARKNET_KEYSTORE_PASSWORD.trim() : 'vargaviella';
       
       // Convertir paymentId a formato hexadecimal válido para felt252
       const paymentIdHex = '0x' + Buffer.from(paymentId, 'utf8').toString('hex');
