@@ -11,10 +11,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { useAccount } from '@starknet-react/core'
-import { useTransfer } from '@/hooks/useChipiPayTransferSDK'
-import { useChipiPay } from '@/components/providers/ChipiPayProvider'
-import { useChipiPayWalletStorage } from '@/hooks/useChipiPayWalletStorage'
+import { useCavosTransfer } from '@/hooks/useCavosTransfer'
+import { useCavosWallet } from '@/hooks/useCavosWallet'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { useAuth } from '@/store/auth'
 import jsQR from 'jsqr'
@@ -25,15 +23,15 @@ import jsQR from 'jsqr'
 export default function ScanChipiPayPage() {
   const router = useRouter()
   const { user } = useAuth()
-  const { account } = useAccount()
-  const { tokenAddresses } = useChipiPay()
-  const { wallet: chipiPayWallet, hasWallet } = useChipiPayWalletStorage()
-  const { transferAsync, isLoading: isTransferring, transferData } = useTransfer()
+  const { wallet: cavosWallet, address: cavosAddress, isConnected: isCavosConnected } = useCavosWallet()
+  const { transfer, isLoading: isTransferring, lastTransactionHash } = useCavosTransfer()
   const { t } = useLanguage()
+  
+  // Direcciones de contratos
+  const USDC_CONTRACT = process.env.NEXT_PUBLIC_USDC_CONTRACT_ADDRESS || '0x053c91253bc9682c04929ca02ed00b3e423f6710d2ee7e0d5ebb06f3ecf368a8'
   
   const [scannedData, setScannedData] = useState<any>(null)
   const [showScanner, setShowScanner] = useState(false)
-  const [pin, setPin] = useState('')
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
@@ -116,7 +114,7 @@ export default function ScanChipiPayPage() {
         stopScanner()
         toast.success('QR escaneado correctamente')
       } else {
-        toast.error('Este QR no es de ChipiPay o no es válido')
+        toast.error('Este QR no es válido')
       }
     } catch (error) {
       console.error('Error procesando QR:', error)
@@ -124,53 +122,48 @@ export default function ScanChipiPayPage() {
     }
   }
 
-  // Procesar pago con ChipiPay
+  // Procesar pago con Cavos
   const handleProcessPayment = async () => {
-    if (!scannedData || !hasWallet || !chipiPayWallet) {
-      toast.error('Necesitas tener una wallet ChipiPay creada para procesar pagos')
-      return
-    }
-
-    if (!pin || pin.length < 4) {
-      toast.error('Ingresa tu PIN (mínimo 4 caracteres)')
+    if (!scannedData || !isCavosConnected || !cavosAddress) {
+      toast.error('Necesitas tener una wallet Cavos conectada para procesar pagos')
       return
     }
 
     try {
-      const apiKey = process.env.NEXT_PUBLIC_CHIPI_API_KEY
-      const secretKey = process.env.CHIPI_SECRET_KEY
-      const bearerToken = secretKey || apiKey || ''
+      // Determinar dirección del contrato según el token
+      let tokenContractAddress = ''
+      let decimals = 18
 
-      if (!bearerToken) {
-        toast.error('Credenciales de ChipiPay no configuradas')
+      if (scannedData.paymentData.targetCrypto === 'USDC') {
+        tokenContractAddress = USDC_CONTRACT
+        decimals = 6
+      } else {
+        toast.error(`Token ${scannedData.paymentData.targetCrypto} no soportado`)
         return
       }
 
-      // Convertir amount a formato con decimals (USDC tiene 6 decimals)
-      const decimals = 6
-      const amountInSmallestUnit = Math.floor(parseFloat(scannedData.paymentData.cryptoAmount.toString()) * Math.pow(10, decimals))
+      // Convertir amount a formato con decimals
+      const amountInSmallestUnit = Math.floor(
+        parseFloat(scannedData.paymentData.cryptoAmount.toString()) * Math.pow(10, decimals)
+      ).toString()
 
-      // Ejecutar transferencia usando useTransfer
-      // ChipiPay maneja USDC automáticamente, no necesitamos contractAddress
-      const txHash = await transferAsync({
-        params: {
-          encryptKey: pin,
-          wallet: {
-            publicKey: chipiPayWallet.publicKey,
-            encryptedPrivateKey: chipiPayWallet.encryptedPrivateKey
-          },
-          token: 'USDC', // ChipiPay resuelve la dirección del contrato automáticamente
-          recipient: scannedData.paymentData.walletAddress || account?.address || '',
-          amount: amountInSmallestUnit.toString(),
-          decimals: decimals,
-        },
-        bearerToken,
-      })
+      const recipient = scannedData.paymentData.walletAddress || ''
+      if (!recipient) {
+        toast.error('Dirección del destinatario no válida')
+        return
+      }
 
-      if (txHash) {
+      // Ejecutar transferencia usando Cavos
+      const result = await transfer(
+        tokenContractAddress,
+        recipient,
+        amountInSmallestUnit
+      )
+
+      if (result.success && result.transactionHash) {
         // Guardar transacción en backend
         try {
-          const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/chipipay/transactions`, {
+          const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/cavos/transactions`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -179,9 +172,9 @@ export default function ScanChipiPayPage() {
               sessionId: scannedData.paymentData.sessionId,
               amountARS: scannedData.paymentData.amountARS,
               amountUSDC: scannedData.paymentData.cryptoAmount,
-              txHash: txHash,
-              fromAddress: chipiPayWallet.publicKey,
-              toAddress: scannedData.paymentData.walletAddress || account?.address,
+              txHash: result.transactionHash,
+              fromAddress: cavosAddress,
+              toAddress: recipient,
               status: 'completed',
               userId: user?.id
             })
@@ -200,6 +193,8 @@ export default function ScanChipiPayPage() {
           console.error('Error guardando transacción:', error)
           toast.success('Pago procesado exitosamente!')
         }
+      } else {
+        throw new Error(result.error || 'Error al procesar el pago')
       }
     } catch (error) {
       console.error('Error procesando pago:', error)
@@ -215,7 +210,7 @@ export default function ScanChipiPayPage() {
   }, [])
 
   return (
-    <DashboardLayout pageTitle="Escanear QR ChipiPay">
+    <DashboardLayout pageTitle="Escanear QR Cavos">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-6">
@@ -227,25 +222,25 @@ export default function ScanChipiPayPage() {
             <span>Volver al Dashboard</span>
           </Link>
           <h1 className="text-3xl font-bold" style={{ color: '#1a1a1a', fontFamily: 'Kufam, sans-serif' }}>
-            Escanear QR de Pago ChipiPay
+            Escanear QR de Pago Cavos
           </h1>
         </div>
 
-        {/* Verificar wallet ChipiPay */}
-        {!hasWallet && (
+        {/* Verificar wallet Cavos */}
+        {!isCavosConnected && (
           <Card className="mb-6" style={{ 
             backgroundColor: 'rgba(254, 108, 28, 0.05)', 
             borderColor: 'rgba(254, 108, 28, 0.2)' 
           }}>
             <CardContent className="p-6">
               <p className="text-sm mb-4" style={{ color: '#5d5d5d' }}>
-                Necesitas crear una wallet ChipiPay antes de poder procesar pagos.
+                Necesitas crear una wallet Cavos antes de poder procesar pagos.
               </p>
               <Button
                 onClick={() => router.push('/dashboard/billetera')}
                 style={{ backgroundColor: '#fe6c1c', color: '#ffffff' }}
               >
-                Crear Wallet ChipiPay
+                Crear Wallet Cavos
               </Button>
             </CardContent>
           </Card>
@@ -264,13 +259,13 @@ export default function ScanChipiPayPage() {
               {!showScanner ? (
                 <>
                   <p className="text-sm" style={{ color: '#5d5d5d' }}>
-                    Escanea el código QR generado por el comercio para procesar el pago con ChipiPay.
+                    Escanea el código QR generado por el comercio para procesar el pago con Cavos.
                   </p>
                   <Button
                     onClick={startScanner}
                     className="w-full"
                     style={{ backgroundColor: '#fe6c1c', color: '#ffffff' }}
-                    disabled={!hasWallet}
+                    disabled={!isCavosConnected}
                   >
                     <QrCode className="w-4 h-4 mr-2" />
                     Iniciar Escáner de Cámara
@@ -327,29 +322,11 @@ export default function ScanChipiPayPage() {
                 </p>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="pin">PIN de tu Wallet ChipiPay</Label>
-                <Input
-                  id="pin"
-                  type="password"
-                  value={pin}
-                  onChange={(e) => setPin(e.target.value)}
-                  placeholder="Ingresa tu PIN"
-                  minLength={4}
-                  required
-                  style={{ 
-                    backgroundColor: 'rgba(247, 247, 246, 0.8)', 
-                    border: '1px solid rgba(254,108,28,0.2)'
-                  }}
-                />
-              </div>
-
               <div className="flex space-x-3">
                 <Button
                   variant="outline"
                   onClick={() => {
                     setScannedData(null)
-                    setPin('')
                   }}
                   className="flex-1"
                 >
@@ -357,7 +334,7 @@ export default function ScanChipiPayPage() {
                 </Button>
                 <Button
                   onClick={handleProcessPayment}
-                  disabled={isTransferring || !pin}
+                  disabled={isTransferring}
                   className="flex-1"
                   style={{ backgroundColor: '#fe6c1c', color: '#ffffff' }}
                 >
@@ -372,14 +349,14 @@ export default function ScanChipiPayPage() {
                 </Button>
               </div>
 
-              {transferData && (
+              {lastTransactionHash && (
                 <div className="p-3 rounded-lg bg-green-50 border border-green-200">
                   <div className="flex items-center space-x-2">
                     <CheckCircle className="w-5 h-5 text-green-600" />
                     <div>
                       <p className="text-sm font-medium text-green-800">Transacción completada</p>
                       <p className="text-xs font-mono text-green-600 break-all mt-1">
-                        TX: {transferData}
+                        TX: {lastTransactionHash}
                       </p>
                     </div>
                   </div>

@@ -5,8 +5,7 @@ import { Toaster } from 'react-hot-toast'
 import { AuthProvider } from '@/components/providers/AuthProvider'
 import { ClerkProvider } from '@/components/providers/ClerkProvider'
 import { LanguageProvider } from '@/contexts/LanguageContext'
-import { ChipiPayProvider } from '@/components/providers/ChipiPayProvider'
-import { ChipiPaySDKProvider } from '@/components/providers/ChipiPaySDKProvider'
+import CavosProvider from '@/components/providers/CavosProvider'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -53,12 +52,11 @@ export default function RootLayout({
     <html lang="es" suppressHydrationWarning>
       <body className={inter.className}>
         <ClerkProvider>
-          <ChipiPaySDKProvider>
-            <ChipiPayProvider>
-              <LanguageProvider>
-                <AuthProvider>
-                  {children}
-                  <Toaster
+          <CavosProvider>
+            <LanguageProvider>
+              <AuthProvider>
+                {children}
+                <Toaster
                     position="top-center"
                     toastOptions={{
                       duration: 4000,
@@ -91,8 +89,7 @@ export default function RootLayout({
                   />
                 </AuthProvider>
               </LanguageProvider>
-            </ChipiPayProvider>
-          </ChipiPaySDKProvider>
+            </CavosProvider>
         </ClerkProvider>
       </body>
     </html>

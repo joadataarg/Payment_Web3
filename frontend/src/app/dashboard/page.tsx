@@ -4,10 +4,9 @@ import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { useWalletManager } from '@/hooks/useWalletManager'
 import { useUSDTBalance } from '@/hooks/useUSDTBalance'
-import { useChipiPayBalance } from '@/hooks/useChipiPayBalance'
-import { useAccount } from '@starknet-react/core'
-import { ChipiPayCreateWallet } from '@/components/ChipiPayCreateWallet'
-import { useChipiPayWalletStorage } from '@/hooks/useChipiPayWalletStorage'
+import { CavosBalance } from '@/components/CavosBalance'
+import { CavosCreateWallet } from '@/components/CavosCreateWallet'
+import { useCavosWallet } from '@/hooks/useCavosWallet'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { useUserProfile } from '@/hooks/useUserProfile'
 import { useAuth as useClerkAuth } from '@clerk/nextjs'
@@ -22,9 +21,8 @@ export default function DashboardPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { wallet, isConnected, isLoading: walletLoading } = useWalletManager()
-  const { account } = useAccount()
   const { balance: usdtBalance, isLoading: usdtBalanceLoading, error: usdtBalanceError } = useUSDTBalance(wallet?.address)
-  const { balance: chipiPayUSDCBalance, isLoading: chipiPayBalanceLoading } = useChipiPayBalance(account?.address, 'USDC')
+  const { address: cavosAddress, isConnected: isCavosConnected } = useCavosWallet()
   const { t } = useLanguage()
   const { user, isLoading: profileLoading, needsOnboarding, needsWallet } = useUserProfile()
   const { isSignedIn, isLoaded: isClerkAuthLoaded } = useClerkAuth()
@@ -59,16 +57,15 @@ export default function DashboardPage() {
   //   }
   // }, [profileLoading, needsOnboarding, router])
 
-  // Mostrar ChipiPayCreateWallet si no hay wallet conectada
+  // Mostrar CavosCreateWallet si no hay wallet conectada
   // Verificar si el usuario tiene wallet en la BD o en localStorage
-  const { wallet: chipiPayWallet, hasWallet: hasChipiPayWallet } = useChipiPayWalletStorage()
-  const hasAnyWallet = isConnected || hasChipiPayWallet || user?.walletAddress
+  const hasAnyWallet = isConnected || isCavosConnected || user?.walletAddress
   
   if (!hasAnyWallet && !walletLoading && !profileLoading) {
     return (
       <DashboardLayout pageTitle={t.dashboard.header.start}>
         <div className="min-h-screen bg-gradient-to-br from-orange-50 to-teal-50 flex items-center justify-center p-4">
-          <ChipiPayCreateWallet />
+          <CavosCreateWallet />
         </div>
       </DashboardLayout>
     )
@@ -325,8 +322,8 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              {/* USDC (ChipiPay) Card */}
-              {account && (
+              {/* USDC (Cavos) Card */}
+              {isCavosConnected && cavosAddress && (
                 <div className="flex items-center justify-between border-t border-orange-200" style={{ padding: '16px 0', marginTop: '16px' }}>
                   <div className="flex items-center space-x-4">
                     <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ backgroundColor: '#2775CA' }}>
@@ -338,16 +335,18 @@ export default function DashboardPage() {
                     </div>
                     <div>
                       <h5 className="font-bold" style={{ color: '#2C2C2C', fontFamily: 'Kufam, sans-serif', fontWeight: 700 }}>USDC</h5>
-                      <p className="text-sm" style={{ color: '#8B8B8B', fontFamily: 'Kufam, sans-serif', fontWeight: 400 }}>ChipiPay</p>
+                      <p className="text-sm" style={{ color: '#8B8B8B', fontFamily: 'Kufam, sans-serif', fontWeight: 400 }}>Cavos</p>
                     </div>
                   </div>
                   
                   <div className="grid grid-cols-[1fr_1fr_1fr] gap-16">
                     <div className="text-left">
                       <p className="text-sm" style={{ color: '#8B8B8B', fontFamily: 'Kufam, sans-serif', fontWeight: 400 }}>{t.dashboard.balance}</p>
-                      <p className="font-bold text-lg" style={{ color: '#FF6A00', fontFamily: 'Kufam, sans-serif', fontWeight: 500 }}>
-                        {chipiPayBalanceLoading ? '...' : `${parseFloat(chipiPayUSDCBalance || '0').toFixed(6)}`}
-                      </p>
+                      <CavosBalance 
+                        token="USDC" 
+                        tokenAddress={process.env.NEXT_PUBLIC_USDC_CONTRACT_ADDRESS || '0x053c91253bc9682c04929ca02ed00b3e423f6710d2ee7e0d5ebb06f3ecf368a8'}
+                        address={cavosAddress}
+                      />
                     </div>
                     <div className="text-left">
                       <p className="text-sm" style={{ color: '#8B8B8B', fontFamily: 'Kufam, sans-serif', fontWeight: 400 }}>{t.dashboard.exchangeRate}</p>
@@ -355,9 +354,7 @@ export default function DashboardPage() {
                     </div>
                     <div className="text-left">
                       <p className="text-sm" style={{ color: '#8B8B8B', fontFamily: 'Kufam, sans-serif', fontWeight: 400 }}>{t.dashboard.argentinePesos}</p>
-                      <p className="font-bold text-lg" style={{ color: '#2C2C2C', fontFamily: 'Kufam, sans-serif', fontWeight: 500 }}>
-                        ${(parseFloat(chipiPayUSDCBalance || '0') * 1000).toLocaleString()}
-                      </p>
+                      <p className="font-bold text-lg" style={{ color: '#2C2C2C', fontFamily: 'Kufam, sans-serif', fontWeight: 500 }}>--</p>
                     </div>
                   </div>
                   
