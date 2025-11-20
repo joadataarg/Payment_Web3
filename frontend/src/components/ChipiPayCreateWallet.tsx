@@ -36,9 +36,11 @@ export function ChipiPayCreateWallet() {
   const { saveWallet, wallet: storedWallet } = useChipiPayWalletStorage()
   
   const hasWallet = !!storedWallet?.publicKey
+
   
   // Función para obtener el token correcto según el método de autenticación
   const getAuthToken = async (): Promise<string | null> => {
+    console.log({jwtToken, isClerkSignedIn})
     // Si hay token JWT (autenticación tradicional), usarlo
     if (jwtToken) {
       console.log('🔑 Usando token JWT para autenticación')
@@ -53,6 +55,8 @@ export function ChipiPayCreateWallet() {
         return clerkToken
       }
     }
+
+    throw new Error('Hiro::ERROR::No se pudo obtener el token de autenticación')
     
     return null
   }
@@ -84,7 +88,7 @@ export function ChipiPayCreateWallet() {
 
     try {
       // Obtener token de sesión de Clerk para ChipiPay SDK
-      const bearerToken = await getClerkToken()
+      const bearerToken = jwtToken
       
       if (!bearerToken) {
         toast.error('No se pudo obtener el token de autenticación')

@@ -39,7 +39,7 @@ export function useUserProfile() {
       if (jwtToken && isJwtAuthenticated) {
         token = jwtToken
         tokenSource = 'JWT'
-        console.log('✅ Usando token JWT (registro manual)')
+        console.log(`✅ Usando token JWT (registro manual) - ${jwtToken}`)
       } else if (isAuthLoaded) {
         // Prioridad 2: Si Clerk está cargado, intentar obtener token de Clerk
         try {
