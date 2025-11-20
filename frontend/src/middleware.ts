@@ -13,6 +13,7 @@ const isPublicRoute = createRouteMatcher([
 const isClientProtectedRoute = createRouteMatcher([
   '/dashboard(.*)',
   '/onboarding(.*)',
+  '/scan(.*)',
 ])
 
 // Usar clerkMiddleware con protección de rutas

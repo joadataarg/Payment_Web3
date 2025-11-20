@@ -11,9 +11,15 @@ import toast from 'react-hot-toast'
 // Usar API nativa del navegador + jsQR para detectar QR codes
 import jsQR from 'jsqr'
 import { Input } from '@/components/ui/input'
+import { useAuth } from '@clerk/nextjs'
+import { useAuth as useAuthStore } from '@/store/auth'
+import { useClerkSafe } from '@/hooks/useClerkSafe'
 
 export default function QRScannerPage() {
   const router = useRouter()
+  const { isSignedIn: isClerkSignedIn, isLoaded: isClerkLoaded } = useAuth()
+  const { isAuthenticated: isJwtAuthenticated, hasHydrated } = useAuthStore()
+  const { isConfigured: isClerkConfigured } = useClerkSafe()
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [qrScanner, setQrScanner] = useState<any>(null)
@@ -28,9 +34,38 @@ export default function QRScannerPage() {
   const [manualQRData, setManualQRData] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [isDragging, setIsDragging] = useState(false)
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true)
+
+  // Verificar autenticación antes de permitir acceso
+  useEffect(() => {
+    // Esperar a que Clerk cargue si está configurado
+    if (isClerkConfigured && !isClerkLoaded) {
+      return
+    }
+
+    // Esperar a que el store de auth se hidrate
+    if (!hasHydrated) {
+      return
+    }
+
+    // Verificar si el usuario está autenticado (Clerk o JWT)
+    const isAuthenticated = isClerkSignedIn || isJwtAuthenticated
+
+    if (!isAuthenticated) {
+      // Redirigir a login con return URL
+      const returnUrl = encodeURIComponent('/scan')
+      router.push(`/auth/login?returnUrl=${returnUrl}`)
+      return
+    }
+
+    // Usuario autenticado, permitir acceso
+    setIsCheckingAuth(false)
+  }, [isClerkLoaded, isClerkSignedIn, isJwtAuthenticated, hasHydrated, isClerkConfigured, router])
 
   // Inicializar cámara usando API nativa
   useEffect(() => {
+    // No inicializar cámara hasta que la autenticación esté verificada
+    if (isCheckingAuth) return
     // Evitar múltiples inicializaciones
     if (isInitialized) return
     
@@ -115,7 +150,7 @@ export default function QRScannerPage() {
         clearInterval(scanInterval)
       }
     }
-  }, [isInitialized]) // Solo ejecutar cuando cambie isInitialized
+  }, [isInitialized, isCheckingAuth]) // Solo ejecutar cuando cambie isInitialized o cuando la auth esté lista
 
   const startQRDetection = () => {
     if (!videoRef.current || !canvasRef.current) return
@@ -436,6 +471,18 @@ export default function QRScannerPage() {
         toast.error('Por favor, arrastra un archivo de imagen')
       }
     }
+  }
+
+  // Mostrar loading mientras se verifica autenticación
+  if (isCheckingAuth) {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#f7f7f6' }}>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto mb-4"></div>
+          <p className="text-gray-600">Verificando autenticación...</p>
+        </div>
+      </div>
+    )
   }
 
   return (

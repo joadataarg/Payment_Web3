@@ -95,7 +95,11 @@ export default function LoginPage() {
       clearError()
       await login(emailValue, data.password)
       toast.success(t.auth.login.welcome)
-      router.push('/dashboard')
+      
+      // Verificar si hay un returnUrl en los search params
+      const returnUrl = searchParams.get('returnUrl')
+      const redirectPath = returnUrl ? decodeURIComponent(returnUrl) : '/dashboard'
+      router.push(redirectPath)
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : t.auth.login.errors.loggingIn
       setError(errorMessage)
@@ -152,11 +156,16 @@ export default function LoginPage() {
       
       // Obtener la URL base
       const baseUrl = typeof window !== 'undefined' ? window.location.origin : process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
-      const redirectUrl = `${baseUrl}/dashboard`
+      
+      // Verificar si hay un returnUrl en los search params
+      const returnUrl = searchParams.get('returnUrl')
+      const redirectPath = returnUrl ? decodeURIComponent(returnUrl) : '/dashboard'
+      const redirectUrl = `${baseUrl}${redirectPath}`
       
       console.log('🚀 Iniciando autenticación OAuth con:', {
         provider: oauthProvider,
-        redirectUrl: redirectUrl
+        redirectUrl: redirectUrl,
+        returnUrl: returnUrl
       })
       
       // Usar redirectUrl pero dejar que Clerk maneje el callback automáticamente
