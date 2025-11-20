@@ -74,6 +74,8 @@ export const useAuthStore = create<AuthStore>()(
             throw new Error(data.message || 'Error al iniciar sesión')
           }
 
+          console.log(`✅ Login exitoso - ${JSON.stringify(data)}`)
+
           set({
             user: data.user,
             token: data.token,
