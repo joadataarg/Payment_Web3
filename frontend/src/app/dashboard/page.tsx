@@ -16,6 +16,7 @@ import { QrCode, ArrowUp, History, Settings } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import toast from 'react-hot-toast'
+import { useCryptoConversion } from '@/hooks/useCryptoConversion'
 
 export default function DashboardPage() {
   const router = useRouter()
@@ -26,6 +27,7 @@ export default function DashboardPage() {
   const { t } = useLanguage()
   const { user, isLoading: profileLoading, needsOnboarding, needsWallet } = useUserProfile()
   const { isSignedIn, isLoaded: isClerkAuthLoaded } = useClerkAuth()
+  const { getRate, loading: rateLoading } = useCryptoConversion()
   
   // Debug: Verificar si venimos de OAuth callback
   useEffect(() => {
@@ -306,7 +308,12 @@ export default function DashboardPage() {
                   </div>
                   <div className="text-left">
                     <p className="text-sm" style={{ color: '#8B8B8B', fontFamily: 'Kufam, sans-serif', fontWeight: 400 }}>{t.dashboard.exchangeRate}</p>
-                    <p className="font-bold text-lg" style={{ color: '#FF6A00', fontFamily: 'Kufam, sans-serif', fontWeight: 500 }}>--</p>
+                    <p className="font-bold text-lg" style={{ color: '#FF6A00', fontFamily: 'Kufam, sans-serif', fontWeight: 500 }}>
+                      {rateLoading ? '...' : (() => {
+                        const rate = getRate('USDT')
+                        return rate ? `${Math.round(rate).toLocaleString()} ARS` : '--'
+                      })()}
+                    </p>
                   </div>
                   <div className="text-left">
                     <p className="text-sm" style={{ color: '#8B8B8B', fontFamily: 'Kufam, sans-serif', fontWeight: 400 }}>{t.dashboard.argentinePesos}</p>
@@ -355,7 +362,12 @@ export default function DashboardPage() {
                     </div>
                     <div className="text-left">
                       <p className="text-sm" style={{ color: '#8B8B8B', fontFamily: 'Kufam, sans-serif', fontWeight: 400 }}>{t.dashboard.exchangeRate}</p>
-                      <p className="font-bold text-lg" style={{ color: '#FF6A00', fontFamily: 'Kufam, sans-serif', fontWeight: 500 }}>$1,000</p>
+                      <p className="font-bold text-lg" style={{ color: '#FF6A00', fontFamily: 'Kufam, sans-serif', fontWeight: 500 }}>
+                        {rateLoading ? '...' : (() => {
+                          const rate = getRate('USDT')
+                          return rate ? `$${Math.round(rate).toLocaleString()} ARS` : '--'
+                        })()}
+                      </p>
                     </div>
                     <div className="text-left">
                       <p className="text-sm" style={{ color: '#8B8B8B', fontFamily: 'Kufam, sans-serif', fontWeight: 400 }}>{t.dashboard.argentinePesos}</p>

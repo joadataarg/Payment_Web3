@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 
 services:
   # Base de datos PostgreSQL
@@ -25,12 +25,15 @@ services:
       dockerfile: Dockerfile
       args:
         BUN_VERSION: ${BUN_VERSION:-1.1.32}
+        STARKLI_VERSION: ${STARKLI_VERSION:-0.1.24}
+        STARKLI_TARGET: ${STARKLI_TARGET:-x86_64-unknown-linux-gnu}
     container_name: midatopay-backend
     environment:
       DATABASE_URL: postgresql://midatopay:midatopay123@postgres:5432/midatopay
       JWT_SECRET: midatopay_jwt_secret_development
       NODE_ENV: development
       PORT: 3001
+      STARKLI_PATH: /usr/local/bin/starkli
     ports:
       - "3001:3001"
     depends_on:
